@@ -1,7 +1,7 @@
 use quote::{quote, quote_spanned, format_ident};
-use syn::spanned::Spanned;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro::*;
+use proc_macro::TokenStream;
+use syn::spanned::Spanned;
 
 #[macro_use]
 mod util; use util::*;
