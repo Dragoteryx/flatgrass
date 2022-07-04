@@ -93,6 +93,10 @@ impl<'l> LuaValue<'l> {
     }
   }
 
+  pub fn state(&self) -> LuaState {
+    self.state
+  }
+
   pub fn get_type(&self) -> LuaType {
     let lua_type = unsafe {
       self.state.fg_checkstack(1);

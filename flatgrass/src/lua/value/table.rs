@@ -31,6 +31,10 @@ impl<'l> LuaTable<'l> {
     }
   }
 
+  pub fn state(&self) -> LuaState {
+    self.0.state
+  }
+
   pub fn new_list<T: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = T>) -> Self {
     let tbl = Self::new(lua);
     for value in iter.into_iter() {
@@ -60,24 +64,30 @@ impl<'l> LuaTable<'l> {
 
   pub fn get(&self, key: impl PushToLua) -> LuaValue<'l> {
     unsafe {
-      self.0.state.fg_checkstack(2);
-      self.0.state.fg_pushvalue(self);
-      self.0.state.fg_pushvalue(key);
-      self.0.state.lua_gettable(-2);
-      let value = LuaValue::pop(self.0.state);
-      self.0.state.lua_pop(1);
+      let state = self.state();
+      state.fg_checkstack(2);
+      state.fg_pushvalue(self);
+      state.fg_pushvalue(key);
+      state.lua_gettable(-2);
+      let value = LuaValue::pop(state);
+      state.lua_pop(1);
       value
     }
   }
 
+  pub fn has(&self, key: impl PushToLua) -> bool {
+    self.get(key).get_type() != LuaType::Nil
+  }
+
   pub fn set(&self, key: impl PushToLua, value: impl PushToLua) {
     unsafe {
-      self.0.state.fg_checkstack(3);
-      self.0.state.fg_pushvalue(self);
-      self.0.state.fg_pushvalue(key);
-      self.0.state.fg_pushvalue(value);
-      self.0.state.lua_settable(-3);
-      self.0.state.lua_pop(1);
+      let state = self.state();
+      state.fg_checkstack(3);
+      state.fg_pushvalue(self);
+      state.fg_pushvalue(key);
+      state.fg_pushvalue(value);
+      state.lua_settable(-3);
+      state.lua_pop(1);
     }
   }
 
@@ -87,10 +97,11 @@ impl<'l> LuaTable<'l> {
 
   pub fn len(&self) -> usize {
     unsafe {
-      self.0.state.fg_checkstack(1);
-      self.0.state.fg_pushvalue(self);
-      let len = self.0.state.lua_objlen(-1);
-      self.0.state.lua_pop(1);
+      let state = self.state();
+      state.fg_checkstack(1);
+      state.fg_pushvalue(self);
+      let len = state.lua_objlen(-1);
+      state.lua_pop(1);
       len
     }
   }

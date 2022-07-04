@@ -29,11 +29,26 @@ impl<'l> LuaGlobals<'l> {
     Self(LuaTable::pop(state))
   }
 
+  pub fn state(&self) -> LuaState {
+    self.0.state()
+  }
+
   pub fn get(&self, key: impl PushToLua) -> LuaValue<'l> {
     self.0.get(key)
   }
 
   pub fn set(&self, key: impl PushToLua, value: impl PushToLua) {
     self.0.set(key, value);
+  }
+
+  pub fn add_lib(&self, name: impl PushToLua, func: impl FnOnce(&LuaTable<'l>)) {
+    unsafe {
+      let state = self.state();
+      state.fg_checkstack(1);
+      state.lua_newtable();
+      let tbl = LuaTable::pop(state);
+      func(&tbl);
+      self.set(name, tbl);
+    }
   }
 }

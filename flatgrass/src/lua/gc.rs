@@ -19,6 +19,10 @@ impl<'l> LuaGc<'l> {
     Self { phantom: PhantomData, state }
   }
 
+  pub fn state(&self) -> LuaState {
+    self.state
+  }
+
   pub fn stop(&self) {
     unsafe { self.state.lua_gc(LUA_GCSTOP, 0); }
   }

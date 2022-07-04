@@ -28,6 +28,10 @@ impl<'l> Lua<'l> {
     Self { phantom: PhantomData, state }
   }
 
+  pub fn state(&self) -> LuaState {
+    self.state
+  }
+
   pub fn globals(&self) -> LuaGlobals<'l> {
     unsafe { LuaGlobals::from_state(self.state) }
   }
