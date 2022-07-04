@@ -1,4 +1,4 @@
-use crate::lua::traits::PushToLua;
+use crate::lua::traits::{GetFromLua, PushToLua};
 use crate::lua::LuaType;
 use std::fmt::Display;
 use super::*;
@@ -10,6 +10,10 @@ pub struct LuaState(NonNull<c_void>);
 
 #[allow(clippy::missing_safety_doc)]
 impl LuaState {
+  pub unsafe fn fg_getvalue<T: GetFromLua>(self, idx: c_int) -> Result<T, T::Error> {
+    GetFromLua::try_get(self, idx)
+  }
+
   pub unsafe fn fg_checkstack(self, size: c_int) {
     if self.lua_checkstack(size) == 0 {
       self.fg_error("stack overflow");
@@ -18,20 +22,6 @@ impl LuaState {
 
   pub unsafe fn fg_pushvalue(self, value: impl PushToLua) {
     PushToLua::push(self, value);
-  }
-
-  pub unsafe fn fg_print(self, value: impl PushToLua) {
-    self.fg_checkstack(2);
-    self.lua_getglobal(cstr!("print"));
-    self.fg_pushvalue(value);
-    self.lua_call(1, 0);
-  }
-
-  pub unsafe fn fg_error(self, error: impl PushToLua) -> ! {
-    self.fg_checkstack(1);
-    self.fg_pushvalue(error);
-    self.lua_error();
-    unreachable!();
   }
 
   pub unsafe fn fg_type(self, idx: c_int) -> LuaType {
@@ -48,6 +38,20 @@ impl LuaState {
       LUA_TLIGHTUSERDATA => LuaType::LightUserdata,
       _ => unreachable!()
     }
+  }
+
+  pub unsafe fn fg_print(self, value: impl PushToLua) {
+    self.fg_checkstack(2);
+    self.lua_getglobal(cstr!("print"));
+    self.fg_pushvalue(value);
+    self.lua_call(1, 0);
+  }
+
+  pub unsafe fn fg_error(self, error: impl PushToLua) -> ! {
+    self.fg_checkstack(1);
+    self.fg_pushvalue(error);
+    self.lua_error();
+    unreachable!();
   }
 
   pub unsafe fn fg_local_error(self, error: impl Display) -> ! {
