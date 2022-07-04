@@ -41,7 +41,7 @@ impl<'l> LuaGlobals<'l> {
     self.0.set(key, value);
   }
 
-  pub fn add_lib(&self, name: impl PushToLua, func: impl FnOnce(&LuaTable<'l>)) {
+  pub fn add_lib(&self, name: &str, func: impl FnOnce(&LuaTable<'l>)) {
     unsafe {
       let state = self.state();
       state.fg_checkstack(1);
