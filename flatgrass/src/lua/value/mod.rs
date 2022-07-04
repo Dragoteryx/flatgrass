@@ -98,38 +98,12 @@ impl<'l> LuaValue<'l> {
   }
 
   pub fn get_type(&self) -> LuaType {
-    let lua_type = unsafe {
+    unsafe {
       self.state.fg_checkstack(1);
       self.state.fg_pushvalue(self);
-      let t = self.state.lua_type(-1);
+      let t = self.state.fg_type(-1);
       self.state.lua_pop(1);
       t
-    };
-
-    match lua_type {
-      LUA_TNIL => LuaType::Nil,
-      LUA_TBOOLEAN => LuaType::Boolean,
-      LUA_TNUMBER => LuaType::Number,
-      LUA_TSTRING => LuaType::String,
-      LUA_TTABLE => LuaType::Table,
-      LUA_TFUNCTION => LuaType::Function,
-      LUA_TUSERDATA => LuaType::Userdata,
-      LUA_TTHREAD => LuaType::Thread,
-      LUA_TLIGHTUSERDATA => LuaType::LightUserdata,
-      _ => unreachable!()
     }
   }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LuaType {
-  Nil,
-  Boolean,
-  Number,
-  String,
-  Table,
-  Function,
-  Userdata,
-  Thread,
-  LightUserdata
 }

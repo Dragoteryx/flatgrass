@@ -15,10 +15,8 @@ impl<'l> PushToLua for LuaGlobals<'l> {
 }
 
 impl<'l> LuaArg for LuaGlobals<'l> {
-  type Error = std::convert::Infallible;
-
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
-    Ok(Self::from_state(state))
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Self {
+    Self::from_state(state)
   }
 }
 

@@ -12,6 +12,10 @@ mod util; use util::*;
 ///   printfg!(lua, "Hello!");
 /// }
 /// ```
+/// This is an alias for:
+/// ```
+/// #[flatgrass:function(gmod13_open)]
+/// ```
 #[proc_macro_attribute]
 pub fn entry(_: TokenStream, item: TokenStream) -> TokenStream {
   let item = syn::parse_macro_input!(item as syn::ItemFn);
@@ -28,6 +32,10 @@ pub fn entry(_: TokenStream, item: TokenStream) -> TokenStream {
 /// pub fn exit(lua: Lua) {
 ///   printfg!(lua, "Goodbye!");
 /// }
+/// ```
+/// This is an alias for:
+/// ```
+/// #[flatgrass:function(gmod13_close)]
 /// ```
 #[proc_macro_attribute]
 pub fn exit(_: TokenStream, item: TokenStream) -> TokenStream {

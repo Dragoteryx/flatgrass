@@ -46,7 +46,7 @@ pub fn check_valid(func: &syn::ItemFn) -> Option<TokenStream2> {
 pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
   let (func_ident, vis) = (&func.sig.ident, &func.vis);
   let args = func.sig.inputs.iter().map(|arg| spanned!(
-    arg, LuaArg::resolve(state, &mut idx).unwrap_or_else(|err| state.fg_error(err))
+    arg, LuaArg::resolve(state, &mut narg)
   ));
 
   match &func.sig.output {
@@ -59,7 +59,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
         #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
           use ::flatgrass::lua::traits::{LuaArg, LuaReturn};
   
-          let mut idx = 1;
+          let mut narg = 1;
           let ret = #func_ident(#(#args),*);
           let top = state.lua_gettop();
           #ret;
@@ -74,7 +74,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
       #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
         use ::flatgrass::lua::traits::LuaArg;
 
-        let mut idx = 1;
+        let mut narg = 1;
         #func_ident(#(#args),*);
         0
       }

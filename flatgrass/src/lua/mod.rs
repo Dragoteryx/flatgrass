@@ -3,9 +3,9 @@ use crate::ffi::*;
 
 pub mod traits; use traits::*;
 pub mod value; use value::*;
-pub mod error; use error::*;
 mod globals; pub use globals::*;
 mod realm; pub use realm::*;
+mod typ; pub use typ::*;
 mod gc; pub use gc::*;
 
 #[repr(transparent)]
@@ -16,10 +16,8 @@ pub struct Lua<'l> {
 }
 
 impl<'l> LuaArg for Lua<'l> {
-  type Error = std::convert::Infallible;
-
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
-    Ok(Self::from_state(state))
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Self {
+    Self::from_state(state)
   }
 }
 
