@@ -11,14 +11,14 @@ macro_rules! cstr {
 /// Uses the [`print`](https://wiki.facepunch.com/gmod/Global.print) function.
 #[macro_export]
 macro_rules! printfg {
-	($luaprint:expr, $($arg:expr),*) => {
-		$crate::lua::Lua::print(&$luaprint, format!($($arg),*))
+	($lua:expr, $($arg:expr),*) => {
+		$crate::lua::Lua::print(&$lua, format!($($arg),*))
 	};
 }
 
 #[macro_export]
 macro_rules! errorfg {
-	($luaprint:expr, $($arg:expr),*) => {
-		$crate::lua::Lua::error(&$luaprint, format!($($arg),*))
+	($lua:expr, $($arg:expr),*) => {
+		$crate::lua::Lua::error(&$lua, format!($($arg),*))
 	};
 }

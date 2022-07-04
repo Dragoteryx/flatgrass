@@ -34,18 +34,6 @@ impl<'l> Lua<'l> {
     unsafe { LuaGlobals::from_state(self.state) }
   }
 
-  /*fn get(&self, idx: i32) -> Option<LuaValue<'l>> {
-    unsafe {
-      if self.state.lua_isnone(idx) != 0 {
-        None
-      } else {
-        self.state.fg_checkstack(1);
-        self.state.lua_pushvalue(idx);
-        Some(LuaValue::pop(self.state))
-      }
-    }  
-  }*/
-
   pub fn gc(&self) -> LuaGc<'l> {
     unsafe { LuaGc::from_state(self.state) }
   }
@@ -87,10 +75,4 @@ impl<'l> Lua<'l> {
       n
     }
   }
-
-  /*pub fn get_value(&self) -> Option<LuaValue<'l>> {
-    unsafe {
-    
-    }
-  }*/
 }
