@@ -12,6 +12,7 @@ pub trait GetFromLua: Sized {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GetFromLuaError {
   UnexpectedType(LuaType, LuaType),
+  NoValue,
   Utf8Error(Utf8Error)
 }
 
@@ -19,6 +20,7 @@ impl fmt::Display for GetFromLuaError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::UnexpectedType(expected, got) => write!(f, "expected {expected}, got {got}"),
+      Self::NoValue => write!(f, "got no value"),
       Self::Utf8Error(err) => write!(f, "{err}")
     }
   }
@@ -107,6 +109,20 @@ impl GetFromLua for String {
 }
 
 // lua types
+
+impl<'l> GetFromLua for LuaValue<'l> {
+  type Error = GetFromLuaError;
+
+  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
+    if state.fg_type(idx) == LuaType::None {
+      Err(GetFromLuaError::NoValue)
+    } else {
+      state.fg_checkstack(1);
+      state.fg_pushvalue(idx);
+      Ok(LuaValue::pop(state))
+    }
+  }
+}
 
 impl<'l> GetFromLua for LuaTable<'l> {
   type Error = GetFromLuaError;
