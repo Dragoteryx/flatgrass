@@ -7,13 +7,14 @@ pub mod error; use error::*;
 mod realm; pub use realm::*;
 mod gc; pub use gc::*;
 
-#[derive(Clone, Copy)]
+#[repr(transparent)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Lua<'l> {
   phantom: PhantomData<&'l ()>,
   state: LuaState
 }
 
-impl<'l> LuaParam for Lua<'l> {
+impl<'l> LuaArg for Lua<'l> {
   type Error = std::convert::Infallible;
 
   unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
@@ -22,26 +23,83 @@ impl<'l> LuaParam for Lua<'l> {
 }
 
 impl<'l> Lua<'l> {
-  pub const unsafe fn from_state(state: LuaState) -> Self {
+  pub unsafe fn from_state(state: LuaState) -> Self {
     Self { phantom: PhantomData, state }
   }
 
+  pub fn globals(&self) -> LuaTable<'l> {
+    unsafe {
+      self.state.fg_checkstack(1);
+      self.state.lua_pushvalue(LUA_GLOBALSINDEX);
+      LuaTable::pop(self.state)
+    }
+  }
+
+  pub fn new_table(&self) -> LuaTable<'l> {
+    unsafe {
+      self.state.fg_checkstack(1);
+      self.state.lua_newtable();
+      LuaTable::pop(self.state)
+    }
+  }
+
+  /*fn get(&self, idx: i32) -> Option<LuaValue<'l>> {
+    unsafe {
+      if self.state.lua_isnone(idx) != 0 {
+        None
+      } else {
+        self.state.fg_checkstack(1);
+        self.state.lua_pushvalue(idx);
+        Some(LuaValue::pop(self.state))
+      }
+    }  
+  }*/
+
+  pub fn gc(&self) -> LuaGc<'l> {
+    unsafe { LuaGc::from_state(self.state) }
+  }
+
+  pub fn print(&self, value: impl PushToLua) {
+    unsafe { self.state.fg_print(value); }
+  }
+
+  pub fn error(&self, error: impl PushToLua) -> ! {
+    unsafe { self.state.fg_error(error); }
+  }
+
   pub fn realm(&self) -> LuaRealm {
-    LuaRealm::Server
-  }
-
-  pub fn print(&self, value: impl ToLua) {
     unsafe {
-      lua_getglobal(self.state, crate::cstr!("print"));
-      ToLua::push(self.state, value);
-      lua_call(self.state, 1, 0);
+      self.state.fg_checkstack(3);
+      self.state.lua_getglobal(crate::cstr!("SERVER"));
+      self.state.lua_getglobal(crate::cstr!("CLIENT"));
+      self.state.lua_getglobal(crate::cstr!("MENU"));
+      let server = self.state.lua_toboolean(-3) != 0;
+      let client = self.state.lua_toboolean(-2) != 0;
+      let menu = self.state.lua_toboolean(-1) != 0;
+      self.state.lua_pop(3);
+      match (server, client, menu) {
+        (true, false, false) => LuaRealm::Server,
+        (false, true, false) => LuaRealm::Client,
+        (false, false, true) => LuaRealm::Menu,
+        _ => self.error("invalid realm")
+      }
     }
   }
 
-  pub fn error(&self, value: impl ToLua) {
+  pub fn curtime(&self) -> f64 {
     unsafe {
-      ToLua::push(self.state, value);
-      lua_error(self.state);
+      self.state.fg_checkstack(1);
+      self.state.lua_getglobal(crate::cstr!("CurTime"));
+      self.state.lua_call(0, 1);
+      let n = self.state.lua_tonumber(-1);
+      self.state.lua_pop(1);
+      n
     }
   }
+
+  /*pub fn get_value(&self) -> Option<LuaValue<'l>> {
+    unsafe {
+    
+    }
+  }*/
 }

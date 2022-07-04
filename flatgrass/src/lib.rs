@@ -1,9 +1,11 @@
 #![deny(clippy::cast_possible_truncation)]
-#![allow(clippy::missing_safety_doc)]
 #![warn(clippy::use_self)]
 #![feature(c_unwind)]
 
-pub use flatgrass_macros::*;
+extern crate self as flatgrass;
+pub use flatgrass_macros::{
+  entry, exit, function
+};
 
 /// Contains the FFI bindings for the Lua C API, as well as type definitions.
 /// 
@@ -21,6 +23,9 @@ pub mod prelude {
   pub use crate::lua::LuaGc;
   pub use crate::lua::LuaRealm;
   pub use crate::lua::value::LuaValue;
+  
+  pub use crate::ffi::LuaState;
+  pub use crate::ffi::LuaCFunction;
 
   pub use crate::cstr;
   pub use crate::table;

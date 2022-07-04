@@ -1,10 +1,5 @@
 use super::*;
 
-/// See the Lua 5.1 manual: [`lua_State`](https://www.lua.org/manual/5.1/manual.html#lua_State)
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct LuaState(NonNull<c_void>);
-
 /// See the Lua 5.1 manual: [`lua_Alloc`](https://www.lua.org/manual/5.1/manual.html#lua_Alloc)
 pub type LuaAlloc = unsafe extern "C-unwind" fn(ud: *mut c_void, ptr: *mut c_void, osize: size_t, nsize: size_t) -> *mut c_void;
 

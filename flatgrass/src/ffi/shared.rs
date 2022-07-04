@@ -34,7 +34,7 @@ pub static LUA_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| {
 });
 
 #[cfg(all(target_os = "macos"))]
-pub static LUA_SHARED_PATH: Lazy<Option<PathBuf>> =Lazy::new(|| {
+pub static LUA_PATH: Lazy<Option<PathBuf>> =Lazy::new(|| {
   Some(PathBuf::from("garrysmod/bin/lua_shared.dylib"))
 });
 
