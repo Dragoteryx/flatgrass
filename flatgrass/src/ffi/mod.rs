@@ -1,6 +1,7 @@
 use libc::{c_char, c_double, c_int, c_void, ptrdiff_t, size_t};
 use std::ptr::NonNull;
 
+pub use crate::cstr;
 mod shared; pub use shared::*;
 mod state; pub use state::*;
 mod types; pub use types::*;

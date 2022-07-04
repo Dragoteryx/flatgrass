@@ -16,8 +16,46 @@ impl<'l> PushToLua for LuaTable<'l> {
 }
 
 impl<'l> LuaTable<'l> {
+  /// Pops the value at the top of the stack and returns a LuaTable.
+  /// # Safety
+  /// The stack must not be empty, and the value at the top needs to be a table.
   pub unsafe fn pop(state: LuaState) -> Self {
     Self(LuaValue::pop(state))
+  }
+
+  pub fn new(lua: &Lua<'l>) -> Self {
+    unsafe {
+      lua.state.fg_checkstack(1);
+      lua.state.lua_newtable();
+      Self::pop(lua.state)
+    }
+  }
+
+  pub fn new_list<T: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = T>) -> Self {
+    let tbl = Self::new(lua);
+    for value in iter.into_iter() {
+      tbl.push(value);
+    }
+
+    tbl
+  }
+
+  pub fn new_map<K: PushToLua, V: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = (K, V)>) -> Self {
+    let tbl = Self::new(lua);
+    for (key, value) in iter.into_iter() {
+      tbl.set(key, value);
+    }
+    
+    tbl
+  }
+
+  pub fn new_set<T: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = T>) -> Self {
+    let tbl = Self::new(lua);
+    for value in iter.into_iter() {
+      tbl.set(value, true);
+    }
+
+    tbl
   }
 
   pub fn get(&self, key: impl PushToLua) -> LuaValue<'l> {
@@ -41,6 +79,10 @@ impl<'l> LuaTable<'l> {
       self.0.state.lua_settable(-3);
       self.0.state.lua_pop(1);
     }
+  }
+
+  pub fn push(&self, value: impl PushToLua) {
+    self.set(self.len() + 1, value);
   }
 
   pub fn len(&self) -> usize {

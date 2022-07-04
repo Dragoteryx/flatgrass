@@ -37,11 +37,12 @@ impl<'l> PartialEq for LuaValue<'l> {
   }
 }
 
-use std::cmp::Ordering;
 impl<'l> PartialOrd for LuaValue<'l> {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    use std::cmp::Ordering::*;
+
     if self == other { 
-      Some(Ordering::Equal)
+      Some(Equal)
     } else {
       let lt = unsafe {
         self.state.fg_checkstack(2);
@@ -53,9 +54,9 @@ impl<'l> PartialOrd for LuaValue<'l> {
       };
       
       if lt {
-        Some(Ordering::Less)
+        Some(Less)
       } else {
-        Some(Ordering::Greater)
+        Some(Greater)
       }
     }
   }
@@ -74,10 +75,21 @@ impl<'l> PushToLua for LuaValue<'l> {
 }
 
 impl<'l> LuaValue<'l> {
+  /// Pops the value at the top of the stack and returns a LuaValue.
+  /// # Safety
+  /// The stack must not be empty.
   pub unsafe fn pop(state: LuaState) -> Self {
     Self {
       phantom: PhantomData, state,
       lref: state.luaL_ref(LUA_ENVIRONINDEX)
+    }
+  }
+
+  pub fn new(lua: &Lua<'l>, value: impl PushToLua) -> Self {
+    unsafe {
+      lua.state.fg_checkstack(1);
+      lua.state.fg_pushvalue(value);
+      Self::pop(lua.state)
     }
   }
 

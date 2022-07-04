@@ -4,6 +4,7 @@ use crate::ffi::*;
 pub mod traits; use traits::*;
 pub mod value; use value::*;
 pub mod error; use error::*;
+mod globals; pub use globals::*;
 mod realm; pub use realm::*;
 mod gc; pub use gc::*;
 
@@ -27,20 +28,8 @@ impl<'l> Lua<'l> {
     Self { phantom: PhantomData, state }
   }
 
-  pub fn globals(&self) -> LuaTable<'l> {
-    unsafe {
-      self.state.fg_checkstack(1);
-      self.state.lua_pushvalue(LUA_GLOBALSINDEX);
-      LuaTable::pop(self.state)
-    }
-  }
-
-  pub fn new_table(&self) -> LuaTable<'l> {
-    unsafe {
-      self.state.fg_checkstack(1);
-      self.state.lua_newtable();
-      LuaTable::pop(self.state)
-    }
+  pub fn globals(&self) -> LuaGlobals<'l> {
+    unsafe { LuaGlobals::from_state(self.state) }
   }
 
   /*fn get(&self, idx: i32) -> Option<LuaValue<'l>> {

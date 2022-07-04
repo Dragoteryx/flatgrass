@@ -6,28 +6,6 @@ macro_rules! cstr {
 	}
 }
 
-/// Creates a new table and add fields to it.
-#[macro_export]
-macro_rules! table {
-	($lua:expr) => {
-		$crate::lua::LuaTable::new(&$lua)
-	};
-	($lua:expr, [$($value:expr),* $(,)?]) => {
-		{
-			let __tbl = $crate::lua::LuaTable::new(&$lua);
-			$(__tbl.push($value);)*
-			__tbl
-		}
-	};
-	($lua:expr, [$($key:expr => $value:expr),* $(,)?]) => {
-		{
-			let __tbl = $crate::lua::LuaTable::new(&$lua);
-			$(__tbl.insert($key, $value);)*
-			__tbl
-		}
-	};
-}
-
 /// Prints output to the Garry's Mod console.
 /// 
 /// Uses the [`print`](https://wiki.facepunch.com/gmod/Global.print) function.

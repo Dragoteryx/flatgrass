@@ -19,16 +19,12 @@ pub mod lua;
 pub mod gmod;
 
 pub mod prelude {
-  pub use crate::lua::Lua;
-  pub use crate::lua::LuaGc;
-  pub use crate::lua::LuaRealm;
-  pub use crate::lua::value::LuaValue;
+  pub use crate::lua::*;
+  pub use crate::lua::value::*;
   
   pub use crate::ffi::LuaState;
   pub use crate::ffi::LuaCFunction;
 
-  pub use crate::cstr;
-  pub use crate::table;
   pub use crate::printfg;
   pub use crate::errorfg;
 }

@@ -1,10 +1,8 @@
-pub use flatgrass_macros::PushToLua;
-
 use std::convert::Infallible;
 use libc::c_void;
 use super::*;
 
-pub trait PushToLua {
+pub trait PushToLua: Sized {
   unsafe fn push(state: LuaState, value: Self);
 }
 

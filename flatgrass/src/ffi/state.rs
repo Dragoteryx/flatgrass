@@ -18,13 +18,9 @@ impl LuaState {
     PushToLua::push(self, value);
   }
 
-  pub unsafe fn fg_pushfunc(self, func: LuaCFunction) {
-    PushToLua::push(self, func);
-  }
-
   pub unsafe fn fg_print(&self, value: impl PushToLua) {
     self.fg_checkstack(2);
-    self.lua_getglobal(crate::cstr!("print"));
+    self.lua_getglobal(cstr!("print"));
     self.fg_pushvalue(value);
     self.lua_call(1, 0);
   }
