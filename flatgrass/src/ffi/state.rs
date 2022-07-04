@@ -50,11 +50,11 @@ impl LuaState {
     }
   }
 
-  pub unsafe fn fg_localized_error(self, error: impl Display) -> ! {
+  pub unsafe fn fg_local_error(self, error: impl Display) -> ! {
     self.fg_error(format!("{error}"));
   }
 
   pub unsafe fn fg_badarg_error(self, narg: c_int, error: impl Display) -> ! {
-    self.fg_localized_error(format!("bad argument #{narg} ({error})"));
+    self.fg_local_error(format!("bad argument #{narg} ({error})"));
   }
 }

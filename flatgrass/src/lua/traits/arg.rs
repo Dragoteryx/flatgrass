@@ -1,7 +1,7 @@
 use super::*;
 
 /// Types that implement this trait can be used as parameter for a Lua function.
-/// All types that implement [`FromLua`](FromLua) will automatically
+/// All types that implement [`GetFromLua`](GetFromLua) will automatically
 /// implement this trait via a blanket implementation,
 /// so you should implement it instead whenever possible.
 pub trait LuaArg: Sized {

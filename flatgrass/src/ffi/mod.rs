@@ -106,7 +106,7 @@ macro_rules! fetch_lua {
     #[allow(non_snake_case)]
     pub unsafe fn $name($self $(,$arg: $argty)*) $(-> $ret)? {
       LUA_SHARED
-        .get::<extern "C-unwind" fn(LuaState $(,$argty)*) $(-> $ret)?>(stringify!($name).as_bytes())
+        .get::<extern "C-unwind" fn(Self $(,$argty)*) $(-> $ret)?>(stringify!($name).as_bytes())
         .expect(concat!("Could not find '", stringify!($name), "'"))($self $(,$arg)*)
     }
   };
