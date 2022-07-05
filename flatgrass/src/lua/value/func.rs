@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct LuaFunction<'l>(LuaValue<'l>);
 
 impl<'l> PushToLua for &LuaFunction<'l> {
