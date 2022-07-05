@@ -19,7 +19,7 @@ pub enum GetFromLuaError {
 impl fmt::Display for GetFromLuaError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::UnexpectedType(expected, got) => write!(f, "expected {expected}, got {got}"),
+      Self::UnexpectedType(expected, got) => write!(f, "{expected} expected, got {got}"),
       Self::NoValue => write!(f, "got no value"),
       Self::Utf8Error(err) => write!(f, "{err}")
     }
