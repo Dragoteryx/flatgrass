@@ -1,5 +1,109 @@
 use super::*;
 
+/// See the Lua 5.1 manual: [`lua_Alloc`](https://www.lua.org/manual/5.1/manual.html#lua_Alloc)
+pub type LuaAlloc = unsafe extern "C-unwind" fn(ud: *mut c_void, ptr: *mut c_void, osize: size_t, nsize: size_t) -> *mut c_void;
+
+/// See the Lua 5.1 manual: [`lua_CFunction`](https://www.lua.org/manual/5.1/manual.html#lua_CFunction)
+pub type LuaCFunction = unsafe extern "C-unwind" fn(state: LuaState) -> c_int;
+
+/// See the Lua 5.1 manual: [`lua_Reader`](https://www.lua.org/manual/5.1/manual.html#lua_Reader)
+pub type LuaReader = unsafe extern "C-unwind" fn(state: LuaState, data: *mut c_void, size: *mut size_t) -> *const c_char;
+
+/// See the Lua 5.1 manual: [`lua_Writer`](https://www.lua.org/manual/5.1/manual.html#lua_Writer)
+pub type LuaWriter = unsafe extern "C-unwind" fn(state: LuaState, ptr: *const c_void, size: size_t, data: *mut c_void) -> c_int;
+
+/// See the Lua 5.1 manual: [`lua_call`](https://www.lua.org/manual/5.1/manual.html#lua_call)
+pub const LUA_MULTRET: c_int = -1;
+
+/// See the Lua 5.1 manual: [`Registry`](https://www.lua.org/manual/5.1/manual.html#3.5)
+pub const LUA_REGISTRYINDEX: c_int = -10000;
+
+/// See the Lua 5.1 manual: [`Pseudo-indices`](https://www.lua.org/manual/5.1/manual.html#3.3)
+pub const LUA_ENVIRONINDEX: c_int = -10001;
+
+/// See the Lua 5.1 manual: [`Pseudo-indices`](https://www.lua.org/manual/5.1/manual.html#3.3)
+pub const LUA_GLOBALSINDEX: c_int = -10002;
+
+/// See the Lua 5.1 manual: [`lua_status`](https://www.lua.org/manual/5.1/manual.html#lua_status)
+pub const LUA_YIELD: c_int = 1;
+
+/// See the Lua 5.1 manual: [`lua_pcall`](https://www.lua.org/manual/5.1/manual.html#lua_pcall)
+pub const LUA_ERRRUN: c_int = 2;
+
+/// See the Lua 5.1 manual: [`lua_load`](https://www.lua.org/manual/5.1/manual.html#lua_load)
+pub const LUA_ERRSYNTAX: c_int = 3;
+
+/// See the Lua 5.1 manual: [`lua_pcall`](https://www.lua.org/manual/5.1/manual.html#lua_pcall)
+pub const LUA_ERRMEM: c_int = 4;
+
+/// See the Lua 5.1 manual: [`lua_pcall`](https://www.lua.org/manual/5.1/manual.html#lua_pcall)
+pub const LUA_ERRERR: c_int = 5;
+
+/// See the Lua 5.1 manual: [`luaL_loadfile`](https://www.lua.org/manual/5.1/manual.html#luaL_loadfile)
+pub const LUA_ERRFILE: c_int = 6;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TNONE: c_int = -1;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TNIL: c_int = 0;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TBOOLEAN: c_int = 1;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TLIGHTUSERDATA: c_int = 2;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TNUMBER: c_int = 3;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TSTRING: c_int = 4;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TTABLE: c_int = 5;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TFUNCTION: c_int = 6;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TUSERDATA: c_int = 7;
+
+/// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
+pub const LUA_TTHREAD: c_int = 8;
+
+/// See the Lua 5.1 manual: [`Stack Size`](https://www.lua.org/manual/5.1/manual.html#3.2)
+pub const LUA_MINSTACK: c_int = 20;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCSTOP: c_int = 0;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCRESTART: c_int = 1;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCCOLLECT: c_int = 2;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCCOUNT: c_int = 3;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCCOUNTB: c_int = 4;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCSTEP: c_int = 5;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCSETPAUSE: c_int = 6;
+
+/// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)
+pub const LUA_GCSETSTEPMUL: c_int = 7;
+
+/// See the Lua 5.1 manual: [`C Closures`](https://www.lua.org/manual/5.1/manual.html#3.4)
+pub const fn lua_upvalueindex(idx: c_int) -> c_int {
+  LUA_GLOBALSINDEX.wrapping_sub(idx)
+}
+
 impl LuaState {
   fetch_lua!(fn lua_atpanic(self, panic_func: LuaCFunction) -> LuaCFunction);
   fetch_lua!(fn lua_call(self, nargs: c_int, nresults: c_int));

@@ -1,5 +1,12 @@
 use super::*;
 
+/// See the Lua 5.1 manual: [`luaL_Reg`](https://www.lua.org/manual/5.1/manual.html#luaL_Reg)
+#[repr(C)]
+pub struct LuaLReg {
+  pub name: *const c_char,
+  pub func: LuaCFunction
+}
+
 /// See the Lua 5.1 manual: [`luaL_ref`](https://www.lua.org/manual/5.1/manual.html#luaL_ref)
 pub const LUA_NOREF: c_int = -2;
 

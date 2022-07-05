@@ -49,9 +49,9 @@ impl<'l> Lua<'l> {
   pub fn realm(&self) -> LuaRealm {
     unsafe {
       self.state.fg_checkstack(3);
-      self.state.lua_getglobal(crate::cstr!("SERVER"));
-      self.state.lua_getglobal(crate::cstr!("CLIENT"));
-      self.state.lua_getglobal(crate::cstr!("MENU"));
+      self.state.lua_getglobal(cstr!("SERVER"));
+      self.state.lua_getglobal(cstr!("CLIENT"));
+      self.state.lua_getglobal(cstr!("MENU"));
       let server = self.state.lua_toboolean(-3) != 0;
       let client = self.state.lua_toboolean(-2) != 0;
       let menu = self.state.lua_toboolean(-1) != 0;
