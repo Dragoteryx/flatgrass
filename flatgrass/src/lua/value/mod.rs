@@ -9,6 +9,18 @@ pub struct LuaValue<'l> {
   lref: i32
 }
 
+impl<'l> PushToLua for &LuaValue<'l> {
+  unsafe fn push(state: LuaState, value: Self) {
+    state.lua_rawgeti(LUA_ENVIRONINDEX, value.lref);
+  }
+}
+
+impl<'l> PushToLua for LuaValue<'l> {
+  unsafe fn push(state: LuaState, value: Self) {
+    state.fg_pushvalue(&value);
+  }
+}
+
 impl<'l> Clone for LuaValue<'l> {
   fn clone(&self) -> Self {
     unsafe {
@@ -60,18 +72,6 @@ impl<'l> PartialOrd for LuaValue<'l> {
         Some(Greater)
       }
     }
-  }
-}
-
-impl<'l> PushToLua for &LuaValue<'l> {
-  unsafe fn push(state: LuaState, value: Self) {
-    state.lua_rawgeti(LUA_ENVIRONINDEX, value.lref);
-  }
-}
-
-impl<'l> PushToLua for LuaValue<'l> {
-  unsafe fn push(state: LuaState, value: Self) {
-    state.fg_pushvalue(&value);
   }
 }
 

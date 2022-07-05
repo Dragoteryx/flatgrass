@@ -118,7 +118,7 @@ impl<'l> GetFromLua for LuaValue<'l> {
       Err(GetFromLuaError::NoValue)
     } else {
       state.fg_checkstack(1);
-      state.fg_pushvalue(idx);
+      state.lua_pushvalue(idx);
       Ok(Self::pop(state))
     }
   }
@@ -133,7 +133,7 @@ impl<'l> GetFromLua for LuaTable<'l> {
       Err(GetFromLuaError::UnexpectedType(LuaType::Table, typ))
     } else {
       state.fg_checkstack(1);
-      state.fg_pushvalue(idx);
+      state.lua_pushvalue(idx);
       Ok(Self::pop(state))
     }
   }
@@ -148,7 +148,7 @@ impl<'l> GetFromLua for LuaFunction<'l> {
       Err(GetFromLuaError::UnexpectedType(LuaType::Function, typ))
     } else {
       state.fg_checkstack(1);
-      state.fg_pushvalue(idx);
+      state.lua_pushvalue(idx);
       Ok(Self::pop(state))
     }
   }
