@@ -1,39 +1,5 @@
 use super::*;
 
-/// See the Lua 5.1 manual: [`lua_Debug`](https://www.lua.org/manual/5.1/manual.html#lua_Debug)
-#[repr(C)]
-#[derive(Debug, Clone)]
-pub struct LuaDebug {
-  pub event: c_int,
-  pub name: *const c_char,
-  pub namewhat: *const c_char,
-  pub what: *const c_char,
-  pub source: *const c_char,
-  pub currentline: c_int,
-  pub nups: c_int,
-  pub linedefined: c_int,
-  pub lastlinedefined: c_int,
-  pub short_src: [c_char; 128],
-  i_ci: c_int
-}
-
-impl Default for LuaDebug {
-	fn default() -> Self {
-		Self {
-			event: 0,
-      name: std::ptr::null(),
-      namewhat: std::ptr::null(),
-      what: std::ptr::null(),
-      source: std::ptr::null(),
-      currentline: 0, nups: 0,
-      linedefined: 0,
-      lastlinedefined: 0,
-      short_src: [0; 128],
-      i_ci: 0
-		}
-	}
-}
-
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
 pub type LuaHook = unsafe extern "C-unwind" fn(state: LuaState, debug: *mut LuaDebug);
 

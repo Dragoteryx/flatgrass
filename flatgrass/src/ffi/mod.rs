@@ -4,6 +4,7 @@ use std::ptr::NonNull;
 pub use crate::cstr;
 mod shared; pub use shared::*;
 mod state; pub use state::*;
+mod debug; pub use debug::*;
 
 macro_rules! fetch_lua {
   (

@@ -54,6 +54,16 @@ impl LuaState {
     unreachable!();
   }
 
+  pub unsafe fn fg_getdebug(self, what: *const c_char) -> Option<LuaDebug> {
+    let mut debug = LuaDebug::default();
+    if self.lua_getstack(0, &mut debug) == 0 {
+      None
+    } else {
+      self.lua_getinfo(what, &mut debug);
+      Some(debug)
+    }
+  }
+
   pub unsafe fn fg_local_error(self, error: impl Display) -> ! {
     self.luaL_where(1);
     let location: String = self.fg_getvalue(-1).unwrap();
@@ -61,7 +71,20 @@ impl LuaState {
     self.fg_error(format!("{location}{error}"));
   }
 
-  pub unsafe fn fg_badarg_error(self, narg: c_int, error: impl Display) -> ! {
-    self.fg_local_error(format!("bad argument #{narg} ({error})"));
+  pub unsafe fn fg_badarg_error(self, mut narg: c_int, error: impl Display) -> ! {
+    match self.fg_getdebug(cstr!("n")) {
+      None => self.fg_local_error(format!("bad argument #{narg} ({error})")),
+      Some(debug) => {
+        let mut name = debug.name();
+        if debug.namewhat() == "method" {
+          narg -= 1;
+          if narg == 0 {
+            self.fg_local_error(format!("calling {name} on bad self ({error})"));
+          }
+        }
+        if name.is_empty() { name = "?"; }
+        self.fg_local_error(format!("bad argument #{narg} to {name} ({error})"));
+      }
+    }
   }
 }
