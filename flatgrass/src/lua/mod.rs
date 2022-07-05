@@ -3,8 +3,8 @@ use crate::ffi::*;
 
 pub mod traits; use traits::*;
 pub mod value; use value::*;
+
 mod globals; pub use globals::*;
-mod realm; pub use realm::*;
 mod typ; pub use typ::*;
 mod gc; pub use gc::*;
 
@@ -75,4 +75,11 @@ impl<'l> Lua<'l> {
       n
     }
   }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LuaRealm {
+  Server,
+  Client,
+  Menu
 }

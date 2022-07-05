@@ -55,7 +55,10 @@ impl LuaState {
   }
 
   pub unsafe fn fg_local_error(self, error: impl Display) -> ! {
-    self.fg_error(format!("{error}"));
+    self.luaL_where(1);
+    let location: String = self.fg_getvalue(-1).unwrap();
+    self.lua_pop(1);
+    self.fg_error(format!("{location} {error}"));
   }
 
   pub unsafe fn fg_badarg_error(self, narg: c_int, error: impl Display) -> ! {

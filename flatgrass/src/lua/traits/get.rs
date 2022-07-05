@@ -119,7 +119,7 @@ impl<'l> GetFromLua for LuaValue<'l> {
     } else {
       state.fg_checkstack(1);
       state.fg_pushvalue(idx);
-      Ok(LuaValue::pop(state))
+      Ok(Self::pop(state))
     }
   }
 }
@@ -134,7 +134,22 @@ impl<'l> GetFromLua for LuaTable<'l> {
     } else {
       state.fg_checkstack(1);
       state.fg_pushvalue(idx);
-      Ok(LuaTable::pop(state))
+      Ok(Self::pop(state))
+    }
+  }
+}
+
+impl<'l> GetFromLua for LuaFunction<'l> {
+  type Error = GetFromLuaError;
+
+  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
+    let typ = state.fg_type(idx);
+    if typ != LuaType::Function {
+      Err(GetFromLuaError::UnexpectedType(LuaType::Function, typ))
+    } else {
+      state.fg_checkstack(1);
+      state.fg_pushvalue(idx);
+      Ok(Self::pop(state))
     }
   }
 }

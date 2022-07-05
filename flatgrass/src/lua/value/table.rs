@@ -62,7 +62,7 @@ impl<'l> LuaTable<'l> {
     tbl
   }
 
-  pub fn get(&self, key: impl PushToLua) -> LuaValue<'l> {
+  pub fn get(&self, key: impl PushToLua) -> Option<LuaValue<'l>> {
     unsafe {
       let state = self.state();
       state.fg_checkstack(2);
@@ -71,12 +71,15 @@ impl<'l> LuaTable<'l> {
       state.lua_gettable(-2);
       let value = LuaValue::pop(state);
       state.lua_pop(1);
-      value
+      match value.get_type() {
+        LuaType::Nil => None,
+        _ => Some(value)
+      }
     }
   }
 
   pub fn has(&self, key: impl PushToLua) -> bool {
-    self.get(key).get_type() != LuaType::Nil
+    self.get(key).is_some()
   }
 
   pub fn set(&self, key: impl PushToLua, value: impl PushToLua) {

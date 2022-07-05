@@ -1,6 +1,7 @@
 use super::*;
 
 mod table; pub use table::*;
+mod func; pub use func::*;
 
 pub struct LuaValue<'l> {
   phantom: PhantomData<&'l ()>,

@@ -31,7 +31,7 @@ impl<'l> LuaGlobals<'l> {
     self.0.state()
   }
 
-  pub fn get(&self, key: impl PushToLua) -> LuaValue<'l> {
+  pub fn get(&self, key: impl PushToLua) -> Option<LuaValue<'l>> {
     self.0.get(key)
   }
 
