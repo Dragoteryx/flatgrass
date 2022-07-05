@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use libc::c_void;
 use super::*;
 
@@ -111,7 +110,7 @@ impl_pushtolua_unsigned!(u64);
 impl_pushtolua_unsigned!(u128);
 impl_pushtolua_unsigned!(usize);
 
-// "special" types ------------------------------
+// misc types ------------------------------
 
 impl<T: PushToLua> PushToLua for Option<T> {
   unsafe fn push(state: LuaState, value: Self) {
@@ -120,4 +119,106 @@ impl<T: PushToLua> PushToLua for Option<T> {
       None => state.fg_pushvalue(())
     }
   }
+}
+
+// slice types ------------------------------------
+
+impl<'l, T: 'l> PushToLua for &'l [T] where &'l T: PushToLua {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_list(&lua, value.iter()))
+  }
+}
+
+impl<const N: usize, T: PushToLua> PushToLua for [T; N] {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_list(&lua, value.into_iter()))
+  }
+}
+
+impl<'l, T: 'l> PushToLua for &'l Vec<T> where &'l T: PushToLua {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_list(&lua, value.iter()))
+  }
+}
+
+impl<T: PushToLua> PushToLua for Vec<T> {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_list(&lua, value.into_iter()))
+  }
+}
+
+// hash types --------------------------------------
+
+use std::collections::HashMap;
+use std::collections::HashSet;
+
+impl<'l, K: 'l, V: 'l> PushToLua for &'l HashMap<K, V>
+where &'l K: PushToLua,
+      &'l V: PushToLua {
+
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_map(&lua, value.iter()))
+  }    
+}
+
+impl<K: PushToLua, V: PushToLua> PushToLua for HashMap<K, V> {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_map(&lua, value.into_iter()))
+  }    
+}
+
+impl<'l, T: 'l> PushToLua for &'l HashSet<T> where &'l T: PushToLua {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_set(&lua, value.iter()))
+  }    
+}
+
+impl<T: PushToLua> PushToLua for HashSet<T> {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_set(&lua, value.into_iter()))
+  }    
+}
+
+// btree types -------------------------------------
+
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+
+impl<'l, K: 'l, V: 'l> PushToLua for &'l BTreeMap<K, V>
+where &'l K: PushToLua,
+      &'l V: PushToLua {
+
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_map(&lua, value.iter()))
+  }    
+}
+
+impl<K: PushToLua, V: PushToLua> PushToLua for BTreeMap<K, V> {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_map(&lua, value.into_iter()))
+  }    
+}
+
+impl<'l, T: 'l> PushToLua for &'l BTreeSet<T> where &'l T: PushToLua {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_set(&lua, value.iter()))
+  }    
+}
+
+impl<T: PushToLua> PushToLua for BTreeSet<T> {
+  unsafe fn push(state: LuaState, value: Self) {
+    let lua = Lua::from_state(state);
+    state.fg_pushvalue(LuaTable::new_set(&lua, value.into_iter()))
+  }    
 }
