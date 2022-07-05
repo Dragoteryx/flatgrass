@@ -79,11 +79,11 @@ impl LuaState {
         if debug.namewhat() == "method" {
           narg -= 1;
           if narg == 0 {
-            self.fg_local_error(format!("calling {name} on bad self ({error})"));
+            self.fg_local_error(format!("calling '{name}' on bad self ({error})"));
           }
         }
         if name.is_empty() { name = "?"; }
-        self.fg_local_error(format!("bad argument #{narg} to {name} ({error})"));
+        self.fg_local_error(format!("bad argument #{narg} to '{name}' ({error})"));
       }
     }
   }

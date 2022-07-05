@@ -36,33 +36,37 @@ impl Default for LuaDebug {
 }
 
 impl LuaDebug {
-  pub unsafe fn name(&self) -> &str {
+  pub fn name(&self) -> &str {
     if !self.name.is_null() {
-      CStr::from_ptr(self.name).to_str().unwrap()
+      let cstr = unsafe { CStr::from_ptr(self.name) };
+      cstr.to_str().unwrap_or_default()
     } else {
       ""
     }
   }
 
-  pub unsafe fn namewhat(&self) -> &str {
-    if !self.name.is_null() {
-      CStr::from_ptr(self.name).to_str().unwrap()
+  pub fn namewhat(&self) -> &str {
+    if !self.namewhat.is_null() {
+      let cstr = unsafe { CStr::from_ptr(self.namewhat) };
+      cstr.to_str().unwrap_or_default()
     } else {
       ""
     }
   }
 
-  pub unsafe fn what(&self) -> &str {
-    if !self.name.is_null() {
-      CStr::from_ptr(self.what).to_str().unwrap()
+  pub fn what(&self) -> &str {
+    if !self.what.is_null() {
+      let cstr = unsafe { CStr::from_ptr(self.what) };
+      cstr.to_str().unwrap_or_default()
     } else {
       ""
     }
   }
 
-  pub unsafe fn source(&self) -> &str {
-    if !self.name.is_null() {
-      CStr::from_ptr(self.source).to_str().unwrap()
+  pub fn source(&self) -> &str {
+    if !self.source.is_null() {
+      let cstr = unsafe { CStr::from_ptr(self.source) };
+      cstr.to_str().unwrap_or_default()
     } else {
       ""
     }
