@@ -16,7 +16,7 @@ impl LuaArg for LuaState {
 
 impl<T: GetFromLua> LuaArg for T {
   unsafe fn resolve(state: LuaState, narg: &mut i32) -> Self {
-    match GetFromLua::try_get(state, *narg) {
+    match state.fg_getvalue(*narg) {
       Err(err) => state.fg_badarg_error(*narg, err),
       Ok(value) => {
         *narg += 1;
@@ -28,7 +28,7 @@ impl<T: GetFromLua> LuaArg for T {
 
 impl<T: GetFromLua> LuaArg for Option<T> {
   unsafe fn resolve(state: LuaState, narg: &mut i32) -> Self {
-    match GetFromLua::try_get(state, *narg) {
+    match state.fg_getvalue(*narg) {
       Err(err) => match state.fg_type(*narg) {
         LuaType::None | LuaType::Nil => {
           *narg += 1;
