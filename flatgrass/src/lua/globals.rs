@@ -15,8 +15,10 @@ impl<'l> PushToLua for LuaGlobals<'l> {
 }
 
 impl<'l> LuaArg for LuaGlobals<'l> {
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Self {
-    Self::from_state(state)
+  type Error = Infallible;
+
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
+    Ok(Self::from_state(state))
   }
 }
 
@@ -27,7 +29,7 @@ impl<'l> LuaGlobals<'l> {
     Self(LuaTable::pop(state))
   }
 
-  pub fn state(&self) -> LuaState {
+  pub(crate) fn state(&self) -> LuaState {
     self.0.state()
   }
 

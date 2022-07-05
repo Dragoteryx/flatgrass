@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::convert::Infallible;
 use crate::ffi::*;
 
 pub mod traits; use traits::*;
@@ -16,8 +17,10 @@ pub struct Lua<'l> {
 }
 
 impl<'l> LuaArg for Lua<'l> {
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Self {
-    Self::from_state(state)
+  type Error = Infallible;
+
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
+    Ok(Self::from_state(state))
   }
 }
 
@@ -26,53 +29,24 @@ impl<'l> Lua<'l> {
     Self { phantom: PhantomData, state }
   }
 
-  pub fn state(&self) -> LuaState {
-    self.state
+  pub fn gc(&self) -> LuaGc<'l> {
+    unsafe { LuaGc::from_state(self.state) }
   }
 
   pub fn globals(&self) -> LuaGlobals<'l> {
     unsafe { LuaGlobals::from_state(self.state) }
   }
 
-  pub fn gc(&self) -> LuaGc<'l> {
-    unsafe { LuaGc::from_state(self.state) }
-  }
-
-  pub fn print(&self, value: impl PushToLua) {
-    unsafe { self.state.fg_print(value); }
-  }
-
-  pub fn error(&self, error: impl PushToLua) -> ! {
-    unsafe { self.state.fg_error(error); }
-  }
-
   pub fn realm(&self) -> LuaRealm {
-    unsafe {
-      self.state.fg_checkstack(3);
-      self.state.lua_getglobal(cstr!("SERVER"));
-      self.state.lua_getglobal(cstr!("CLIENT"));
-      self.state.lua_getglobal(cstr!("MENU"));
-      let server = self.state.lua_toboolean(-3) != 0;
-      let client = self.state.lua_toboolean(-2) != 0;
-      let menu = self.state.lua_toboolean(-1) != 0;
-      self.state.lua_pop(3);
-      match (server, client, menu) {
-        (true, false, false) => LuaRealm::Server,
-        (false, true, false) => LuaRealm::Client,
-        (false, false, true) => LuaRealm::Menu,
-        _ => self.error("invalid realm")
-      }
-    }
-  }
-
-  pub fn curtime(&self) -> f64 {
-    unsafe {
-      self.state.fg_checkstack(1);
-      self.state.lua_getglobal(crate::cstr!("CurTime"));
-      self.state.lua_call(0, 1);
-      let n = self.state.lua_tonumber(-1);
-      self.state.lua_pop(1);
-      n
+    let globals = self.globals();
+    let server = globals.get("SERVER").unwrap().try_as().unwrap();
+    let client = globals.get("CLIENT").unwrap().try_as().unwrap();
+    let menu = globals.get("MENU").unwrap().try_as().unwrap();
+    match (server, client, menu) {
+      (true, false, false) => LuaRealm::Server,
+      (false, true, false) => LuaRealm::Client,
+      (false, false, true) => LuaRealm::Menu,
+      _ => unreachable!()
     }
   }
 }

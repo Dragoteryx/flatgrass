@@ -113,10 +113,6 @@ impl<'l> LuaValue<'l> {
     }
   }
 
-  pub fn state(&self) -> LuaState {
-    self.state
-  }
-
   pub fn pointer(&self) -> *const c_void {
     unsafe {
       self.state.fg_checkstack(1);

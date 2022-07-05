@@ -113,10 +113,6 @@ impl_pushtolua_unsigned!(usize);
 
 // "special" types ------------------------------
 
-impl PushToLua for Infallible {
-  unsafe fn push(_: LuaState, _: Self) {}
-}
-
 impl<T: PushToLua> PushToLua for Option<T> {
   unsafe fn push(state: LuaState, value: Self) {
     match value {

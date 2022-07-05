@@ -46,24 +46,39 @@ pub fn check_valid(func: &syn::ItemFn) -> Option<TokenStream2> {
 pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
   let (func_ident, vis) = (&func.sig.ident, &func.vis);
   let args = func.sig.inputs.iter().map(|arg| spanned!(
-    arg, LuaArg::resolve(state, &mut narg)
+    arg, match LuaArg::resolve(state, &mut narg) {
+      Err(err) => return Err(format!("{}", err)),
+      Ok(value) => value
+    }
   ));
 
   match &func.sig.output {
     syn::ReturnType::Type(_, typ) => {
-      let ret = spanned!(typ, LuaReturn::push(state, ret));
+      let ret = spanned!(typ, LuaReturn::push(state, ret).map_err(|err| format!("{}", err)));
+
       quote::quote!(
         #func
   
         #[no_mangle]
+        #[allow(clippy::useless_format)]
         #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
           use ::flatgrass::lua::traits::{LuaArg, LuaReturn};
+
+          let run = || -> Result<i32, String> {
+            let mut narg = 1;
+            let ret = #func_ident(#(#args),*);
+            #ret
+          };
   
-          let mut narg = 1;
-          let ret = #func_ident(#(#args),*);
-          let top = state.lua_gettop();
-          #ret;
-          (state.lua_gettop() - top).max(0)
+          match run() {
+            Ok(ret) => ret,
+            Err(err) => {
+              state.fg_checkstack(1);
+              state.fg_pushvalue(err);
+              state.lua_error();
+              0
+            }
+          }
         }
       )
     }
@@ -71,12 +86,25 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
       #func
 
       #[no_mangle]
+      #[allow(clippy::useless_format)]
       #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
         use ::flatgrass::lua::traits::LuaArg;
 
-        let mut narg = 1;
-        #func_ident(#(#args),*);
-        0
+        let run = || -> Result<i32, String> {
+          let mut narg = 1;
+          #func_ident(#(#args),*);
+          Ok(0)
+        };
+
+        match run() {
+          Ok(ret) => ret,
+          Err(err) => {
+            state.fg_checkstack(1);
+            state.fg_pushvalue(err);
+            state.lua_error();
+            0
+          }
+        }
       }
     )
   }

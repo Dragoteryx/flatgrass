@@ -7,8 +7,10 @@ pub struct LuaGc<'l> {
 }
 
 impl<'l> LuaArg for LuaGc<'l> {
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Self {
-    Self::from_state(state)
+  type Error = Infallible;
+
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
+    Ok(Self::from_state(state))
   }
 }
 

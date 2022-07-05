@@ -64,7 +64,7 @@ impl<'l> LuaTable<'l> {
     tbl
   }
 
-  pub fn state(&self) -> LuaState {
+  pub(crate) fn state(&self) -> LuaState {
     self.0.state
   }
 

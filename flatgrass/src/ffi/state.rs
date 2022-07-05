@@ -1,6 +1,5 @@
 use crate::lua::traits::{GetFromLua, PushToLua};
 use crate::lua::LuaType;
-use std::fmt::Display;
 use super::*;
 
 /// See the Lua 5.1 manual: [`lua_State`](https://www.lua.org/manual/5.1/manual.html#lua_State)
@@ -10,14 +9,14 @@ pub struct LuaState(NonNull<c_void>);
 
 #[allow(clippy::missing_safety_doc)]
 impl LuaState {
-  pub unsafe fn fg_getvalue<T: GetFromLua>(self, idx: c_int) -> Result<T, T::Error> {
-    GetFromLua::try_get(self, idx)
-  }
-
   pub unsafe fn fg_checkstack(self, size: c_int) {
     if self.lua_checkstack(size) == 0 {
-      self.fg_error("stack overflow");
+      panic!("stack overflow");
     }
+  }
+
+  pub unsafe fn fg_getvalue<T: GetFromLua>(self, idx: c_int) -> Result<T, T::Error> {
+    GetFromLua::try_get(self, idx)
   }
 
   pub unsafe fn fg_pushvalue(self, value: impl PushToLua) {
@@ -40,20 +39,6 @@ impl LuaState {
     }
   }
 
-  pub unsafe fn fg_print(self, value: impl PushToLua) {
-    self.fg_checkstack(2);
-    self.lua_getglobal(cstr!("print"));
-    self.fg_pushvalue(value);
-    self.lua_call(1, 0);
-  }
-
-  pub unsafe fn fg_error(self, error: impl PushToLua) -> ! {
-    self.fg_checkstack(1);
-    self.fg_pushvalue(error);
-    self.lua_error();
-    unreachable!();
-  }
-
   pub unsafe fn fg_getdebug(self, what: *const c_char) -> Option<LuaDebug> {
     let mut debug = LuaDebug::default();
     if self.lua_getstack(0, &mut debug) == 0 {
@@ -64,27 +49,11 @@ impl LuaState {
     }
   }
 
-  pub unsafe fn fg_local_error(self, error: impl Display) -> ! {
-    self.luaL_where(1);
-    let location: String = self.fg_getvalue(-1).unwrap();
+  pub unsafe fn fg_where(self, lvl: c_int) -> String {
+    self.fg_checkstack(1);
+    self.luaL_where(lvl);
+    let location = self.fg_getvalue(-1).unwrap();
     self.lua_pop(1);
-    self.fg_error(format!("{location}{error}"));
-  }
-
-  pub unsafe fn fg_badarg_error(self, mut narg: c_int, error: impl Display) -> ! {
-    match self.fg_getdebug(cstr!("n")) {
-      None => self.fg_local_error(format!("bad argument #{narg} ({error})")),
-      Some(debug) => {
-        let mut name = debug.name();
-        if debug.namewhat() == "method" {
-          narg -= 1;
-          if narg == 0 {
-            self.fg_local_error(format!("calling '{name}' on bad self ({error})"));
-          }
-        }
-        if name.is_empty() { name = "?"; }
-        self.fg_local_error(format!("bad argument #{narg} to '{name}' ({error})"));
-      }
-    }
+    location
   }
 }
