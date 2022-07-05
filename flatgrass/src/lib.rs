@@ -16,16 +16,15 @@ pub mod lua;
 pub mod gmod;
 
 pub mod prelude {
+  pub use crate::ffi::LuaCFunction;
   pub use crate::lua::{
     Lua, LuaGlobals,
     value::{
       LuaValue,
-      LuaTable
+      LuaTable,
+      LuaFunction
     }
   };
-  
-  pub use crate::ffi::LuaState;
-  pub use crate::ffi::LuaCFunction;
 
   pub use crate::printfg;
   pub use crate::errorfg;
