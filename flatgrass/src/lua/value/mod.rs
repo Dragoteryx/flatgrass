@@ -39,6 +39,21 @@ impl<'l> Drop for LuaValue<'l> {
   }
 }
 
+impl<'l> PartialEq for LuaValue<'l> {
+  fn eq(&self, other: &Self) -> bool {
+    unsafe {
+      
+      self.state.fg_checkstack(2);
+      self.state.fg_pushvalue(self);
+      self.state.fg_pushvalue(other);
+      let eq = self.state.lua_rawequal(-1, -2);
+      self.state.lua_pop(2);
+      eq != 0
+    }
+  }
+}
+
+
 impl<'l> fmt::Debug for LuaValue<'l> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.get_type() {

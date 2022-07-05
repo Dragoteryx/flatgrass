@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct LuaTable<'l>(LuaValue<'l>);
 
 impl<'l> PushToLua for &LuaTable<'l> {
@@ -78,7 +78,7 @@ impl<'l> LuaTable<'l> {
       state.fg_checkstack(2);
       state.fg_pushvalue(self);
       state.fg_pushvalue(key);
-      state.lua_gettable(-2);
+      state.lua_rawget(-2);
       let value = LuaValue::pop(state);
       state.lua_pop(1);
       match value.get_type() {
@@ -99,7 +99,7 @@ impl<'l> LuaTable<'l> {
       state.fg_pushvalue(self);
       state.fg_pushvalue(key);
       state.fg_pushvalue(value);
-      state.lua_settable(-3);
+      state.lua_rawset(-3);
       state.lua_pop(1);
     }
   }
