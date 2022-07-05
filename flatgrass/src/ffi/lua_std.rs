@@ -75,7 +75,7 @@ impl LuaState {
   fetch_lua!(fn lua_tointeger(self, idx: c_int) -> ptrdiff_t);
   fetch_lua!(fn lua_tolstring(self, idx: c_int, len: *mut size_t) -> *const c_char);
   fetch_lua!(fn lua_tonumber(self, idx: c_int) -> c_double);
-  fetch_lua!(fn lua_topointer(self, idx: c_int) -> *mut c_void);
+  fetch_lua!(fn lua_topointer(self, idx: c_int) -> *const c_void);
   fetch_lua!(macro lua_tostring(self, idx: c_int) -> *const c_char	{ self.lua_tolstring(idx, ::std::ptr::null_mut()) });
   fetch_lua!(fn lua_tothread(self, idx: c_int) -> Option<Self>);
   fetch_lua!(fn lua_touserdata(self, idx: c_int) -> *mut c_void);

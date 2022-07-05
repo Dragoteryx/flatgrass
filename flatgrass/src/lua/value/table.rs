@@ -31,10 +31,6 @@ impl<'l> LuaTable<'l> {
     }
   }
 
-  pub fn state(&self) -> LuaState {
-    self.0.state
-  }
-
   pub fn new_list<T: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = T>) -> Self {
     let tbl = Self::new(lua);
     for value in iter.into_iter() {
@@ -60,6 +56,14 @@ impl<'l> LuaTable<'l> {
     }
 
     tbl
+  }
+
+  pub fn state(&self) -> LuaState {
+    self.0.state
+  }
+
+  pub fn pointer(&self) -> *const c_void {
+    self.0.pointer()
   }
 
   pub fn get(&self, key: impl PushToLua) -> Option<LuaValue<'l>> {

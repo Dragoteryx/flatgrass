@@ -34,4 +34,8 @@ impl<'l> LuaFunction<'l> {
   pub fn state(&self) -> LuaState {
     self.0.state
   }
+
+  pub fn pointer(&self) -> *const c_void {
+    self.0.pointer()
+  }
 }

@@ -1,3 +1,4 @@
+use libc::c_void;
 use super::*;
 
 mod table; pub use table::*;
@@ -96,6 +97,16 @@ impl<'l> LuaValue<'l> {
 
   pub fn state(&self) -> LuaState {
     self.state
+  }
+
+  pub fn pointer(&self) -> *const c_void {
+    unsafe {
+      self.state.fg_checkstack(1);
+      self.state.fg_pushvalue(self);
+      let ptr = self.state.lua_topointer(-1);
+      self.state.lua_pop(1);
+      ptr
+    }
   }
 
   pub fn get_type(&self) -> LuaType {

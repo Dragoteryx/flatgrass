@@ -1,6 +1,7 @@
 use std::str::Utf8Error;
 use std::error::Error;
 use std::fmt;
+use libc::c_void;
 use super::*;
 
 pub trait GetFromLua: Sized {
@@ -104,6 +105,19 @@ impl GetFromLua for String {
         Err(err) => Err(GetFromLuaError::Utf8Error(err)),
         Ok(str) => Ok(Self::from(str))
       }
+    }
+  }
+}
+
+impl GetFromLua for *mut c_void {
+  type Error = GetFromLuaError;
+
+  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
+    let typ = state.fg_type(idx);
+    if typ != LuaType::LightUserdata {
+      Err(GetFromLuaError::UnexpectedType(LuaType::LightUserdata, typ))
+    } else {
+      Ok(state.lua_touserdata(idx))
     }
   }
 }
