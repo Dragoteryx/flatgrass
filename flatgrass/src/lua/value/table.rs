@@ -15,6 +15,12 @@ impl<'l> PushToLua for LuaTable<'l> {
   }
 }
 
+impl<'l> fmt::Debug for LuaTable<'l> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "table: {:p}", self.pointer())
+  }
+}
+
 impl<'l> LuaTable<'l> {
   /// Pops the value at the top of the stack and returns a LuaTable.
   /// # Safety

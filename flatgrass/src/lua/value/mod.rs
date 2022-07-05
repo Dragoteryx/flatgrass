@@ -1,4 +1,5 @@
 use libc::c_void;
+use std::fmt;
 use super::*;
 
 mod table; pub use table::*;
@@ -76,6 +77,23 @@ impl<'l> PartialOrd for LuaValue<'l> {
   }
 }
 
+impl<'l> fmt::Debug for LuaValue<'l> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self.get_type() {
+      LuaType::Nil => write!(f, "nil"),
+      LuaType::Boolean => self.try_as::<bool>().unwrap().fmt(f),
+      LuaType::Number => self.try_as::<f64>().unwrap().fmt(f),
+      LuaType::String => self.try_as::<String>().unwrap().fmt(f),
+      LuaType::Table => self.try_as::<LuaTable>().unwrap().fmt(f),
+      LuaType::Function => self.try_as::<LuaFunction>().unwrap().fmt(f),
+      LuaType::Userdata => write!(f, "userdata: {:p}", self.pointer()),
+      LuaType::Thread => write!(f, "thread: {:p}", self.pointer()),
+      LuaType::LightUserdata => write!(f, "lightuserdata: {:p}", self.pointer()),
+      LuaType::None => unreachable!()
+    }   
+  }
+}
+
 impl<'l> LuaValue<'l> {
   /// Pops the value at the top of the stack and returns a LuaValue.
   /// # Safety
@@ -116,6 +134,16 @@ impl<'l> LuaValue<'l> {
       let t = self.state.fg_type(-1);
       self.state.lua_pop(1);
       t
+    }
+  }
+
+  pub fn try_as<T: GetFromLua>(&self) -> Result<T, T::Error> {
+    unsafe {
+      self.state.fg_checkstack(1);
+      self.state.fg_pushvalue(self);
+      let value = self.state.fg_getvalue(-1);
+      self.state.lua_pop(1);
+      value
     }
   }
 }
