@@ -52,31 +52,6 @@ impl<'l> PartialEq for LuaValue<'l> {
   }
 }
 
-impl<'l> PartialOrd for LuaValue<'l> {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    use std::cmp::Ordering::*;
-
-    if self == other { 
-      Some(Equal)
-    } else {
-      let lt = unsafe {
-        self.state.fg_checkstack(2);
-        self.state.fg_pushvalue(self);
-        self.state.fg_pushvalue(other);
-        let lt = self.state.lua_lessthan(-2, -1);
-        self.state.lua_pop(2);
-        lt != 0
-      };
-      
-      if lt {
-        Some(Less)
-      } else {
-        Some(Greater)
-      }
-    }
-  }
-}
-
 impl<'l> fmt::Debug for LuaValue<'l> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.get_type() {

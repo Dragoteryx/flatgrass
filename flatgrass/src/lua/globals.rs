@@ -41,14 +41,25 @@ impl<'l> LuaGlobals<'l> {
     self.0.set(key, value);
   }
 
-  pub fn add_lib(&self, name: &str, func: impl FnOnce(&LuaTable<'l>)) {
-    unsafe {
-      let state = self.state();
-      state.fg_checkstack(1);
-      state.lua_newtable();
-      let tbl = LuaTable::pop(state);
-      func(&tbl);
-      self.set(name, tbl);
+  #[must_use = "check if the library has been properly initialized"]
+  pub fn init_lib(&self, name: &str, func: impl FnOnce(&LuaTable<'l>)) -> bool {
+    let tbl = match self.get(name) {
+      Some(value) => value.try_as().ok(),
+      None => unsafe {
+        let state = self.state();
+        state.fg_checkstack(1);
+        state.lua_newtable();
+        Some(LuaTable::pop(state))
+      }
+    };
+
+    match tbl {
+      None => false,
+      Some(tbl) => {
+        func(&tbl);
+        self.set(name, tbl);
+        true
+      }
     }
   }
 }
