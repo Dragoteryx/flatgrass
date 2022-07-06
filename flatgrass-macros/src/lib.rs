@@ -56,8 +56,8 @@ pub fn exit(_: TokenStream, item: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
-  let ident = syn::parse_macro_input!(attr as syn::Ident);
   let item = syn::parse_macro_input!(item as syn::ItemFn);
+  let ident = syn::parse_macro_input!(attr as syn::Ident);
 
   check_valid(&item)
     .unwrap_or_else(|| gen_function(ident, item))

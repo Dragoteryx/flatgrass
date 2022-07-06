@@ -54,7 +54,6 @@ impl<'l> PartialEq for LuaValue<'l> {
   }
 }
 
-
 impl<'l> fmt::Debug for LuaValue<'l> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.get_type() {

@@ -8,7 +8,7 @@ use super::*;
 pub trait LuaArg: Sized {
   type Error: fmt::Display;
 
-  unsafe fn resolve(state: LuaState, idx: &mut i32) -> Result<Self, Self::Error>;
+  unsafe fn resolve(state: LuaState, narg: &mut i32) -> Result<Self, Self::Error>;
 }
 
 impl<T: GetFromLua> LuaArg for T {

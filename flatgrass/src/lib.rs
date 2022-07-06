@@ -20,7 +20,7 @@ pub mod prelude {
   pub use crate::lua::{
     Lua, LuaValue, Globals,
     Table, Function,
-    util::Vararg
+    util::Tuple
   };
 
   pub use crate::printfg;

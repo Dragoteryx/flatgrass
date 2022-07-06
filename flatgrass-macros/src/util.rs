@@ -61,6 +61,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
   
         #[no_mangle]
         #[allow(clippy::useless_format)]
+        #[allow(clippy::missing_safety_doc)]
         #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
           use ::flatgrass::lua::traits::{LuaArg, LuaReturn};
 
@@ -71,7 +72,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
           };
   
           match run() {
-            Ok(ret) => ret,
+            Ok(nret) => nret,
             Err(err) => {
               state.fg_checkstack(1);
               state.fg_pushvalue(err);
@@ -87,6 +88,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
 
       #[no_mangle]
       #[allow(clippy::useless_format)]
+      #[allow(clippy::missing_safety_doc)]
       #vis unsafe extern "C-unwind" fn #lua_ident(state: ::flatgrass::ffi::LuaState) -> i32 {
         use ::flatgrass::lua::traits::LuaArg;
 
@@ -97,7 +99,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
         };
 
         match run() {
-          Ok(ret) => ret,
+          Ok(nret) => nret,
           Err(err) => {
             state.fg_checkstack(1);
             state.fg_pushvalue(err);

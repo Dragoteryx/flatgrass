@@ -58,7 +58,7 @@ impl<'l> Table<'l> {
   pub fn new_set<T: PushToLua>(lua: &Lua<'l>, iter: impl IntoIterator<Item = T>) -> Self {
     let tbl = Self::new(lua);
     for value in iter.into_iter() {
-      tbl.set(value, true);
+      tbl.add(value);
     }
 
     tbl
@@ -106,6 +106,10 @@ impl<'l> Table<'l> {
 
   pub fn push(&self, value: impl PushToLua) {
     self.set(self.len() + 1, value);
+  }
+
+  pub fn add(&self, value: impl PushToLua) {
+    self.set(value, true);
   }
 
   pub fn len(&self) -> usize {
