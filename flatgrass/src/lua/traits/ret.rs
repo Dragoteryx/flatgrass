@@ -12,6 +12,14 @@ pub trait LuaReturn {
   unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error>;
 }
 
+impl<T: LuaReturn<Error = Infallible>, E: Display> LuaReturn for Result<T, E> {
+  type Error = E;
+
+  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+    value.map(|value| LuaReturn::push(state, value).unwrap())
+  }
+}
+
 impl<T: PushToLua> LuaReturn for T {
   type Error = Infallible;
 
@@ -19,14 +27,6 @@ impl<T: PushToLua> LuaReturn for T {
     state.fg_checkstack(1);
     state.fg_pushvalue(value);
     Ok(1)
-  }
-}
-
-impl<T: LuaReturn<Error = Infallible>, E: Display> LuaReturn for Result<T, E> {
-  type Error = E;
-
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
-    value.map(|value| LuaReturn::push(state, value).unwrap())
   }
 }
 

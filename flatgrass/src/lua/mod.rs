@@ -2,12 +2,12 @@ use std::marker::PhantomData;
 use std::convert::Infallible;
 use crate::ffi::*;
 
+pub mod errors; use errors::*;
 pub mod traits; use traits::*;
-pub mod value; use value::*;
+pub mod util; use util::*;
 
-mod globals; pub use globals::*;
+mod value; pub use value::*;
 mod typ; pub use typ::*;
-mod gc; pub use gc::*;
 
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Eq)]
@@ -33,26 +33,26 @@ impl<'l> Lua<'l> {
     unsafe { LuaGc::from_state(self.state) }
   }
 
-  pub fn globals(&self) -> LuaGlobals<'l> {
-    unsafe { LuaGlobals::from_state(self.state) }
+  pub fn globals(&self) -> Globals<'l> {
+    unsafe { Globals::from_state(self.state) }
   }
 
-  pub fn realm(&self) -> LuaRealm {
+  pub fn realm(&self) -> Realm {
     let globals = self.globals();
     let server = globals.get("SERVER").unwrap().try_as().unwrap();
     let client = globals.get("CLIENT").unwrap().try_as().unwrap();
     let menu = globals.get("MENU").unwrap().try_as().unwrap();
     match (server, client, menu) {
-      (true, false, false) => LuaRealm::Server,
-      (false, true, false) => LuaRealm::Client,
-      (false, false, true) => LuaRealm::Menu,
+      (true, false, false) => Realm::Server,
+      (false, true, false) => Realm::Client,
+      (false, false, true) => Realm::Menu,
       _ => unreachable!()
     }
   }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LuaRealm {
+pub enum Realm {
   Server,
   Client,
   Menu

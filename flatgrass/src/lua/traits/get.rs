@@ -1,39 +1,11 @@
-use std::str::Utf8Error;
-use std::error::Error;
-use std::fmt;
 use libc::c_void;
+use std::fmt;
 use super::*;
 
 pub trait GetFromLua: Sized {
   type Error: fmt::Display;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error>;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GetFromLuaError {
-  UnexpectedType(LuaType, LuaType),
-  NoValue,
-  Utf8Error(Utf8Error)
-}
-
-impl fmt::Display for GetFromLuaError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::UnexpectedType(expected, got) => write!(f, "{expected} expected, got {got}"),
-      Self::NoValue => write!(f, "got no value"),
-      Self::Utf8Error(err) => write!(f, "{err}")
-    }
-  }
-}
-
-impl Error for GetFromLuaError {
-  fn source(&self) -> Option<&(dyn Error + 'static)> {
-    match self {
-      Self::Utf8Error(err) => Some(err),
-      _ => None
-    }
-  }
 }
 
 // primitive types ---------------------------
@@ -138,7 +110,7 @@ impl<'l> GetFromLua for LuaValue<'l> {
   }
 }
 
-impl<'l> GetFromLua for LuaTable<'l> {
+impl<'l> GetFromLua for Table<'l> {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -153,7 +125,7 @@ impl<'l> GetFromLua for LuaTable<'l> {
   }
 }
 
-impl<'l> GetFromLua for LuaFunction<'l> {
+impl<'l> GetFromLua for Function<'l> {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {

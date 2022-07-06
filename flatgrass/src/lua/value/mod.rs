@@ -2,8 +2,9 @@ use libc::c_void;
 use std::fmt;
 use super::*;
 
-mod table; pub use table::*;
 mod func; pub use func::*;
+mod table; pub use table::*;
+mod globals; pub use globals::*;
 
 pub struct LuaValue<'l> {
   phantom: PhantomData<&'l ()>,
@@ -61,8 +62,8 @@ impl<'l> fmt::Debug for LuaValue<'l> {
       LuaType::Boolean => self.try_as::<bool>().unwrap().fmt(f),
       LuaType::Number => self.try_as::<f64>().unwrap().fmt(f),
       LuaType::String => self.try_as::<String>().unwrap().fmt(f),
-      LuaType::Table => self.try_as::<LuaTable>().unwrap().fmt(f),
-      LuaType::Function => self.try_as::<LuaFunction>().unwrap().fmt(f),
+      LuaType::Table => self.try_as::<Table>().unwrap().fmt(f),
+      LuaType::Function => self.try_as::<Function>().unwrap().fmt(f),
       LuaType::Userdata => write!(f, "userdata: {:p}", self.pointer()),
       LuaType::Thread => write!(f, "thread: {:p}", self.pointer()),
       LuaType::LightUserdata => write!(f, "lightuserdata: {:p}", self.pointer()),

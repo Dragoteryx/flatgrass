@@ -1,20 +1,20 @@
 use super::*;
 
-pub struct LuaGlobals<'l>(LuaTable<'l>);
+pub struct Globals<'l>(Table<'l>);
 
-impl<'l> PushToLua for &LuaGlobals<'l> {
+impl<'l> PushToLua for &Globals<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(&value.0);
   }
 }
 
-impl<'l> PushToLua for LuaGlobals<'l> {
+impl<'l> PushToLua for Globals<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(value.0);
   }
 }
 
-impl<'l> LuaArg for LuaGlobals<'l> {
+impl<'l> LuaArg for Globals<'l> {
   type Error = Infallible;
 
   unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
@@ -22,11 +22,11 @@ impl<'l> LuaArg for LuaGlobals<'l> {
   }
 }
 
-impl<'l> LuaGlobals<'l> {
+impl<'l> Globals<'l> {
   pub unsafe fn from_state(state: LuaState) -> Self {
     state.fg_checkstack(1);
     state.lua_pushvalue(LUA_GLOBALSINDEX);
-    Self(LuaTable::pop(state))
+    Self(Table::pop(state))
   }
 
   pub(crate) fn state(&self) -> LuaState {
@@ -42,14 +42,14 @@ impl<'l> LuaGlobals<'l> {
   }
 
   #[must_use = "check if the library has been properly initialized"]
-  pub fn init_lib(&self, name: &str, func: impl FnOnce(&LuaTable<'l>)) -> bool {
+  pub fn init_lib(&self, name: &str, func: impl FnOnce(&Table<'l>)) -> bool {
     let tbl = match self.get(name) {
       Some(value) => value.try_as().ok(),
       None => unsafe {
         let state = self.state();
         state.fg_checkstack(1);
         state.lua_newtable();
-        Some(LuaTable::pop(state))
+        Some(Table::pop(state))
       }
     };
 

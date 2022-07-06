@@ -1,3 +1,3 @@
-use crate::lua::value::LuaTable;
+use crate::lua::Table;
 
-pub struct HookLib<'l>(pub(crate) LuaTable<'l>);
+pub struct HookLib<'l>(pub(crate) Table<'l>);

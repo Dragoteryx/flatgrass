@@ -18,12 +18,9 @@ pub mod gmod;
 pub mod prelude {
   pub use crate::ffi::LuaCFunction;
   pub use crate::lua::{
-    Lua, LuaGlobals,
-    value::{
-      LuaValue,
-      LuaTable,
-      LuaFunction
-    }
+    Lua, LuaValue, Globals,
+    Table, Function,
+    util::Vararg
   };
 
   pub use crate::printfg;

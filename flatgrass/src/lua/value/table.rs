@@ -1,28 +1,28 @@
 use super::*;
 
 #[derive(Clone, PartialEq)]
-pub struct LuaTable<'l>(LuaValue<'l>);
+pub struct Table<'l>(LuaValue<'l>);
 
-impl<'l> PushToLua for &LuaTable<'l> {
+impl<'l> PushToLua for &Table<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(&value.0);
   }
 }
 
-impl<'l> PushToLua for LuaTable<'l> {
+impl<'l> PushToLua for Table<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(value.0);
   }
 }
 
-impl<'l> fmt::Debug for LuaTable<'l> {
+impl<'l> fmt::Debug for Table<'l> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "table: {:p}", self.pointer())
   }
 }
 
-impl<'l> LuaTable<'l> {
-  /// Pops the value at the top of the stack and returns a LuaTable.
+impl<'l> Table<'l> {
+  /// Pops the value at the top of the stack and returns a Table.
   /// # Safety
   /// The stack must not be empty, and the value at the top needs to be a table.
   pub unsafe fn pop(state: LuaState) -> Self {
