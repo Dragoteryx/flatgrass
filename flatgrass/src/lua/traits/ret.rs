@@ -6,44 +6,48 @@ use super::*;
 /// All types that implement [`PushToLua`](PushToLua) will automatically
 /// implement this trait via a blanket implementation,
 /// so you should implement it instead whenever possible.
-pub trait LuaReturn {
+pub trait LuaReturn<'l> {
   type Error: Display;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error>;
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error>;
 }
 
-impl<T: LuaReturn<Error = Infallible>, E: Display> LuaReturn for Result<T, E> {
+// misc types -------------------------
+
+impl<'l, T: LuaReturn<'l, Error = Infallible>, E: Display> LuaReturn<'l> for Result<T, E> {
   type Error = E;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     value.map(|value| LuaReturn::push(state, value).unwrap())
   }
 }
 
-impl<T: PushToLua> LuaReturn for T {
+// tuple types ------------------------
+
+impl<'l, T: PushToLua<'l>> LuaReturn<'l> for T {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(1);
     state.fg_pushvalue(value);
     Ok(1)
   }
 }
 
-impl<A: PushToLua> LuaReturn for (A,) {
+impl<'l, A: PushToLua<'l>> LuaReturn<'l> for (A,) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(1);
     state.fg_pushvalue(value.0);
     Ok(1)
   }
 }
 
-impl<A: PushToLua, B: PushToLua> LuaReturn for (A, B) {
+impl<'l, A: PushToLua<'l>, B: PushToLua<'l>> LuaReturn<'l> for (A, B) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(2);
     state.fg_pushvalue(value.0);
     state.fg_pushvalue(value.1);
@@ -51,10 +55,10 @@ impl<A: PushToLua, B: PushToLua> LuaReturn for (A, B) {
   }
 }
 
-impl<A: PushToLua, B: PushToLua, C: PushToLua> LuaReturn for (A, B, C) {
+impl<'l, A: PushToLua<'l>, B: PushToLua<'l>, C: PushToLua<'l>> LuaReturn<'l> for (A, B, C) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(3);
     state.fg_pushvalue(value.0);
     state.fg_pushvalue(value.1);
@@ -63,10 +67,10 @@ impl<A: PushToLua, B: PushToLua, C: PushToLua> LuaReturn for (A, B, C) {
   }
 }
 
-impl<A: PushToLua, B: PushToLua, C: PushToLua, D: PushToLua> LuaReturn for (A, B, C, D) {
+impl<'l, A: PushToLua<'l>, B: PushToLua<'l>, C: PushToLua<'l>, D: PushToLua<'l>> LuaReturn<'l> for (A, B, C, D) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(4);
     state.fg_pushvalue(value.0);
     state.fg_pushvalue(value.1);
@@ -76,10 +80,10 @@ impl<A: PushToLua, B: PushToLua, C: PushToLua, D: PushToLua> LuaReturn for (A, B
   }
 }
 
-impl<A: PushToLua, B: PushToLua, C: PushToLua, D: PushToLua, E: PushToLua> LuaReturn for (A, B, C, D, E) {
+impl<'l, A: PushToLua<'l>, B: PushToLua<'l>, C: PushToLua<'l>, D: PushToLua<'l>, E: PushToLua<'l>> LuaReturn<'l> for (A, B, C, D, E) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(5);
     state.fg_pushvalue(value.0);
     state.fg_pushvalue(value.1);
@@ -90,10 +94,10 @@ impl<A: PushToLua, B: PushToLua, C: PushToLua, D: PushToLua, E: PushToLua> LuaRe
   }
 }
 
-impl<A: PushToLua, B: PushToLua, C: PushToLua, D: PushToLua, E: PushToLua, F: PushToLua> LuaReturn for (A, B, C, D, E, F) {
+impl<'l, A: PushToLua<'l>, B: PushToLua<'l>, C: PushToLua<'l>, D: PushToLua<'l>, E: PushToLua<'l>, F: PushToLua<'l>> LuaReturn<'l> for (A, B, C, D, E, F) {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
     state.fg_checkstack(6);
     state.fg_pushvalue(value.0);
     state.fg_pushvalue(value.1);

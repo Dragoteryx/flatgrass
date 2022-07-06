@@ -2,15 +2,15 @@ use libc::c_void;
 use std::fmt;
 use super::*;
 
-pub trait GetFromLua: Sized {
+pub trait GetFromLua<'l>: Sized {
   type Error: fmt::Display;
 
-  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error>;
+  unsafe fn try_get(state: LuaState<'l>, idx: i32) -> Result<Self, Self::Error>;
 }
 
 // primitive types ---------------------------
 
-impl GetFromLua for () {
+impl<'l> GetFromLua<'l> for () {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -23,7 +23,7 @@ impl GetFromLua for () {
   }
 }
 
-impl GetFromLua for bool {
+impl<'l> GetFromLua<'l> for bool {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -36,7 +36,7 @@ impl GetFromLua for bool {
   }
 }
 
-impl GetFromLua for f64 {
+impl<'l> GetFromLua<'l> for f64 {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -49,7 +49,7 @@ impl GetFromLua for f64 {
   }
 }
 
-impl GetFromLua for isize {
+impl<'l> GetFromLua<'l> for isize {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -62,7 +62,7 @@ impl GetFromLua for isize {
   }
 }
 
-impl GetFromLua for String {
+impl<'l> GetFromLua<'l> for String {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -81,7 +81,7 @@ impl GetFromLua for String {
   }
 }
 
-impl GetFromLua for *mut c_void {
+impl<'l> GetFromLua<'l> for *mut c_void {
   type Error = GetFromLuaError;
 
   unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
@@ -90,52 +90,6 @@ impl GetFromLua for *mut c_void {
       Err(GetFromLuaError::UnexpectedType(LuaType::LightUserdata, typ))
     } else {
       Ok(state.lua_touserdata(idx))
-    }
-  }
-}
-
-// lua types
-
-impl<'l> GetFromLua for LuaValue<'l> {
-  type Error = GetFromLuaError;
-
-  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
-    if state.fg_type(idx) == LuaType::None {
-      Err(GetFromLuaError::NoValue)
-    } else {
-      state.fg_checkstack(1);
-      state.lua_pushvalue(idx);
-      Ok(Self::pop(state))
-    }
-  }
-}
-
-impl<'l> GetFromLua for Table<'l> {
-  type Error = GetFromLuaError;
-
-  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
-    let typ = state.fg_type(idx);
-    if typ != LuaType::Table {
-      Err(GetFromLuaError::UnexpectedType(LuaType::Table, typ))
-    } else {
-      state.fg_checkstack(1);
-      state.lua_pushvalue(idx);
-      Ok(Self::pop(state))
-    }
-  }
-}
-
-impl<'l> GetFromLua for Function<'l> {
-  type Error = GetFromLuaError;
-
-  unsafe fn try_get(state: LuaState, idx: i32) -> Result<Self, Self::Error> {
-    let typ = state.fg_type(idx);
-    if typ != LuaType::Function {
-      Err(GetFromLuaError::UnexpectedType(LuaType::Function, typ))
-    } else {
-      state.fg_checkstack(1);
-      state.lua_pushvalue(idx);
-      Ok(Self::pop(state))
     }
   }
 }

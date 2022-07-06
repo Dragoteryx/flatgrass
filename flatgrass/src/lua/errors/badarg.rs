@@ -1,17 +1,17 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct BadArgError<T: GetFromLua> {
+pub struct BadArgError<'l, T: GetFromLua<'l>> {
   funcname: Option<String>,
   location: String,
   err: T::Error,
   narg: i32
 }
 
-impl<T: GetFromLua> Error for BadArgError<T>
+impl<'l, T: GetFromLua<'l>> Error for BadArgError<'l, T>
 where T: fmt::Debug, T::Error: Error {}
 
-impl<T: GetFromLua> fmt::Display for BadArgError<T> {
+impl<'l, T: GetFromLua<'l>> fmt::Display for BadArgError<'l, T> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let funcname = &self.funcname;
     let location = &self.location;
@@ -29,10 +29,10 @@ impl<T: GetFromLua> fmt::Display for BadArgError<T> {
   }
 }
 
-impl<T: GetFromLua> BadArgError<T> {
+impl<'l, T: GetFromLua<'l>> BadArgError<'l, T> {
   pub unsafe fn new(state: LuaState, mut narg: i32, err: T::Error) -> Self {
     let location = state.fg_where(1);
-    match state.fg_getdebug(cstr!("n")) {
+    match state.fg_debug(cstr!("n")) {
       None => Self {
         funcname: None,
         location, narg,

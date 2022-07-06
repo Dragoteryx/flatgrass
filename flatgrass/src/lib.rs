@@ -19,7 +19,8 @@ pub mod prelude {
   pub use crate::ffi::LuaCFunction;
   pub use crate::lua::{
     Lua, LuaValue, Globals,
-    Table, Function,
+    func::Function,
+    table::Table, 
     util::Tuple
   };
 

@@ -30,7 +30,7 @@ pub const LUA_MASKLINE: c_int =	1 << LUA_HOOKLINE;
 /// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
 pub const LUA_MASKCOUNT: c_int = 1 << LUA_HOOKCOUNT;
 
-impl LuaState {
+impl LuaState<'_> {
   fetch_lua!(fn lua_gethook(self) -> LuaHook);
   fetch_lua!(fn lua_gethookcount(self) -> c_int);
   fetch_lua!(fn lua_gethookmask(self) -> c_int);

@@ -1,6 +1,25 @@
 use std::fmt;
 use super::*;
 
+// realm -------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Realm {
+  Server,
+  Client,
+  Menu
+}
+
+impl<'l> LuaArg<'l> for Realm {
+  type Error = Infallible;
+
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
+    Ok(Lua::from_state(state).realm())
+  }
+}
+
+// lua type ---------------------------
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LuaType {
   None,
@@ -30,19 +49,4 @@ impl fmt::Display for LuaType {
       Self::LightUserdata => write!(f, "lightuserdata")
     }
   }    
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Realm {
-  Server,
-  Client,
-  Menu
-}
-
-impl LuaArg for Realm {
-  type Error = Infallible;
-
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
-    Ok(Lua::from_state(state).realm())
-  }
 }

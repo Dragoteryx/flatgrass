@@ -104,7 +104,7 @@ pub const fn lua_upvalueindex(idx: c_int) -> c_int {
   LUA_GLOBALSINDEX.wrapping_sub(idx)
 }
 
-impl LuaState {
+impl LuaState<'_> {
   fetch_lua!(fn lua_atpanic(self, panic_func: LuaCFunction) -> LuaCFunction);
   fetch_lua!(fn lua_call(self, nargs: c_int, nresults: c_int));
   fetch_lua!(fn lua_checkstack(self, size: c_int) -> c_int);
@@ -138,7 +138,7 @@ impl LuaState {
   fetch_lua!(fn lua_isuserdata(self, idx: c_int) -> c_int);
   fetch_lua!(fn lua_lessthan(self, idx1: c_int, idx2: c_int) -> c_int);
   fetch_lua!(fn lua_load(self, reader: LuaReader, data: *mut c_void, chunkname: *const c_char) -> c_int);
-  fetch_lua!(fn lua_newstate(alloc_func: LuaAlloc, ud: *mut c_void) -> Option<Self>);
+  fetch_lua!(fn lua_newstate(alloc_func: LuaAlloc, ud: *mut c_void) -> Option<LuaState<'static>>);
   fetch_lua!(macro lua_newtable(self) { self.lua_createtable(0, 0); });
   fetch_lua!(fn lua_newthread(self) -> Option<Self>);
   fetch_lua!(fn lua_newuserdata(self, size: size_t) -> *mut c_void);
@@ -181,7 +181,7 @@ impl LuaState {
   fetch_lua!(fn lua_tonumber(self, idx: c_int) -> c_double);
   fetch_lua!(fn lua_topointer(self, idx: c_int) -> *const c_void);
   fetch_lua!(macro lua_tostring(self, idx: c_int) -> *const c_char	{ self.lua_tolstring(idx, ::std::ptr::null_mut()) });
-  fetch_lua!(fn lua_tothread(self, idx: c_int) -> Option<Self>);
+  fetch_lua!(fn lua_tothread(self, idx: c_int) -> Option<LuaState<'static>>);
   fetch_lua!(fn lua_touserdata(self, idx: c_int) -> *mut c_void);
   fetch_lua!(fn lua_type(self, idx: c_int) -> c_int);
   fetch_lua!(fn lua_typename(self, tp: c_int) -> *const c_char);

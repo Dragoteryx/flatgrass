@@ -1,25 +1,29 @@
 use crate::lua::traits::{GetFromLua, PushToLua};
 use crate::lua::LuaType;
+use std::marker::PhantomData;
 use super::*;
 
 /// See the Lua 5.1 manual: [`lua_State`](https://www.lua.org/manual/5.1/manual.html#lua_State)
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct LuaState(NonNull<c_void>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LuaState<'l> {
+  phantom: PhantomData<&'l ()>,
+  ptr: NonNull<c_void>
+}
 
 #[allow(clippy::missing_safety_doc)]
-impl LuaState {
+impl<'l> LuaState<'l> {
   pub unsafe fn fg_checkstack(self, size: c_int) {
     if self.lua_checkstack(size) == 0 {
       panic!("stack overflow");
     }
   }
 
-  pub unsafe fn fg_getvalue<T: GetFromLua>(self, idx: c_int) -> Result<T, T::Error> {
+  pub unsafe fn fg_getvalue<T: GetFromLua<'l>>(self, idx: c_int) -> Result<T, T::Error> {
     GetFromLua::try_get(self, idx)
   }
 
-  pub unsafe fn fg_pushvalue(self, value: impl PushToLua) {
+  pub unsafe fn fg_pushvalue(self, value: impl PushToLua<'l>) {
     PushToLua::push(self, value);
   }
 
@@ -39,7 +43,7 @@ impl LuaState {
     }
   }
 
-  pub unsafe fn fg_getdebug(self, what: *const c_char) -> Option<LuaDebug> {
+  pub unsafe fn fg_debug(self, what: *const c_char) -> Option<LuaDebug> {
     let mut debug = LuaDebug::default();
     if self.lua_getstack(0, &mut debug) == 0 {
       None

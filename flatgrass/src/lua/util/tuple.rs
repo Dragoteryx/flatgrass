@@ -4,6 +4,8 @@ use super::*;
 #[derive(Debug, Clone)]
 pub struct Tuple<T>(pub Vec<T>);
 
+// misc impls ------------------
+
 impl<T> Default for Tuple<T> {
   fn default() -> Self { Self::new() }
 }
@@ -23,19 +25,25 @@ impl<T> IntoIterator for Tuple<T> {
   }
 }
 
-impl<T> Tuple<T> {
-  pub fn new() -> Self { Self(Vec::new()) }
+// lua impls ------------------------
 
-  pub fn push(mut self, value: T) -> Self {
-    self.0.push(value);
-    self
+impl<'l, T: PushToLua<'l>> LuaReturn<'l> for Tuple<T> {
+  type Error = Infallible;
+
+  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
+    let nret = value.0.into_iter().map(|value| {
+      state.fg_checkstack(1);
+      state.fg_pushvalue(value);
+    }).count().try_into().unwrap();
+
+    Ok(nret)
   }
 }
 
-impl<T: GetFromLua> LuaArg for Tuple<T> {
-  type Error = BadArgError<T>;
+impl<'l, T: GetFromLua<'l>> LuaArg<'l> for Tuple<T> {
+  type Error = BadArgError<'l, T>;
 
-  unsafe fn resolve(state: LuaState, narg: &mut i32) -> Result<Self, Self::Error> {
+  unsafe fn resolve(state: LuaState<'l>, narg: &mut i32) -> Result<Self, Self::Error> {
     let mut values = Vec::new();
     loop {
       match state.fg_type(*narg) {
@@ -52,15 +60,13 @@ impl<T: GetFromLua> LuaArg for Tuple<T> {
   }
 }
 
-impl<T: PushToLua> LuaReturn for Tuple<T> {
-  type Error = Infallible;
+// main impl -------------------------
 
-  unsafe fn push(state: LuaState, value: Self) -> Result<i32, Self::Error> {
-    let nret = value.0.into_iter().map(|value| {
-      state.fg_checkstack(1);
-      state.fg_pushvalue(value);
-    }).count().try_into().unwrap_or(i32::MAX);
+impl<T> Tuple<T> {
+  pub fn new() -> Self { Self(Vec::new()) }
 
-    Ok(nret)
+  pub fn push(mut self, value: T) -> Self {
+    self.0.push(value);
+    self
   }
 }

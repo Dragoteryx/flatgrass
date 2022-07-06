@@ -5,16 +5,16 @@ use super::*;
 /// All types that implement [`GetFromLua`](GetFromLua) will automatically
 /// implement this trait via a blanket implementation,
 /// so you should implement it instead whenever possible.
-pub trait LuaArg: Sized {
+pub trait LuaArg<'l>: Sized {
   type Error: fmt::Display;
 
-  unsafe fn resolve(state: LuaState, narg: &mut i32) -> Result<Self, Self::Error>;
+  unsafe fn resolve(state: LuaState<'l>, narg: &mut i32) -> Result<Self, Self::Error>;
 }
 
-impl<T: GetFromLua> LuaArg for T {
-  type Error = BadArgError<T>;
+impl<'l, T: GetFromLua<'l>> LuaArg<'l> for T {
+  type Error = BadArgError<'l, T>;
 
-  unsafe fn resolve(state: LuaState, narg: &mut i32) -> Result<Self, Self::Error> {
+  unsafe fn resolve(state: LuaState<'l>, narg: &mut i32) -> Result<Self, Self::Error> {
     match state.fg_getvalue(*narg) {
       Err(err) => Err(BadArgError::new(state, *narg, err)),
       Ok(value) => {
@@ -25,10 +25,10 @@ impl<T: GetFromLua> LuaArg for T {
   }
 }
 
-impl<T: GetFromLua> LuaArg for Option<T> {
-  type Error = BadArgError<T>;
+impl<'l, T: GetFromLua<'l>> LuaArg<'l> for Option<T> {
+  type Error = BadArgError<'l, T>;
 
-  unsafe fn resolve(state: LuaState, narg: &mut i32) -> Result<Self, Self::Error> {
+  unsafe fn resolve(state: LuaState<'l>, narg: &mut i32) -> Result<Self, Self::Error> {
     match state.fg_getvalue(*narg) {
       Err(err) => match state.fg_type(*narg) {
         LuaType::None | LuaType::Nil => {
