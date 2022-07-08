@@ -53,9 +53,17 @@ impl<'l> Lua<'l> {
 
   pub fn print(&self, values: impl PushManyToLua) -> bool {
     self.globals().get("print")
-      .and_then(|print| print.try_as::<func::Function>().ok())
-      .map(|print| print.call(values).is_ok())
+      .and_then(|pt| pt.try_as::<func::Function>().ok())
+      .map(|pt| pt.call(values).is_ok())
       .unwrap_or_default()
+  }
+
+  pub fn curtime(&self) -> Option<f64> {
+    self.globals().get("CurTime")
+      .and_then(|ct| ct.try_as::<func::Function>().ok())
+      .and_then(|ct| ct.call(()).ok())
+      .and_then(|mut ct| ct.pop_front())
+      .and_then(|ct| ct.try_as().ok())
   }
 }
 
