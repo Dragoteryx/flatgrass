@@ -25,20 +25,6 @@ impl<'l> Drop for LuaValue<'l> {
   }
 }
 
-impl<'l> PartialEq for LuaValue<'l> {
-  fn eq(&self, other: &Self) -> bool {
-    unsafe {
-      let state = self.state;
-      state.fg_checkstack(2);
-      state.fg_pushvalue(self);
-      state.fg_pushvalue(other);
-      let eq = state.lua_rawequal(-1, -2);
-      state.lua_pop(2);
-      eq != 0
-    }
-  }
-}
-
 impl<'l> fmt::Debug for LuaValue<'l> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.get_type() {
@@ -48,9 +34,9 @@ impl<'l> fmt::Debug for LuaValue<'l> {
       LuaType::String => self.try_as::<String>().unwrap().fmt(f),
       LuaType::Table => self.try_as::<Table>().unwrap().fmt(f),
       LuaType::Function => self.try_as::<Function>().unwrap().fmt(f),
-      LuaType::Userdata => write!(f, "Userdata({:p})", self.pointer()),
-      LuaType::Thread => write!(f, "Thread({:p})", self.pointer()),
-      LuaType::LightUserdata => write!(f, "LightUserdata({:p})", self.pointer()),
+      LuaType::Userdata => write!(f, "Userdata ({:p})", self.pointer()),
+      LuaType::Thread => write!(f, "Thread ({:p})", self.pointer()),
+      LuaType::LightUserdata => write!(f, "LightUserdata ({:p})", self.pointer()),
       LuaType::None => unreachable!()
     }   
   }
@@ -58,13 +44,14 @@ impl<'l> fmt::Debug for LuaValue<'l> {
 
 // lua impls --------------------------------
 
-impl<'l> PushToLua<'l> for &LuaValue<'l> {
+impl<'l> PushToLua for &LuaValue<'l> {
   unsafe fn push(state: LuaState, value: Self) {
+    state.fg_checkstack(1);
     state.lua_rawgeti(LUA_ENVIRONINDEX, value.lref);
   }
 }
 
-impl<'l> PushToLua<'l> for LuaValue<'l> {
+impl<'l> PushToLua for LuaValue<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(&value);
   }
@@ -77,8 +64,7 @@ impl<'l> GetFromLua<'l> for LuaValue<'l> {
     if state.fg_type(idx) == LuaType::None {
       Err(GetFromLuaError::NoValue)
     } else {
-      state.fg_checkstack(1);
-      state.lua_pushvalue(idx);
+      state.fg_pushindex(idx);
       Ok(Self::pop(state))
     }
   }
@@ -87,24 +73,22 @@ impl<'l> GetFromLua<'l> for LuaValue<'l> {
 // main impl -------------------------
 
 impl<'l> LuaValue<'l> {
-  unsafe fn pop(state: LuaState<'l>) -> Self {
+  pub unsafe fn pop(state: LuaState<'l>) -> Self {
     Self { state, lref: state.luaL_ref(LUA_ENVIRONINDEX) }
   }
 
-  pub unsafe fn from_state(state: LuaState<'l>, value: impl PushToLua<'l>) -> Self {
-    state.fg_checkstack(1);
+  pub unsafe fn from_state(state: LuaState<'l>, value: impl PushToLua) -> Self {
     state.fg_pushvalue(value);
     Self::pop(state)
   }
 
-  pub fn new(lua: &Lua<'l>, value: impl PushToLua<'l>) -> Self {
+  pub fn new(lua: &Lua<'l>, value: impl PushToLua) -> Self {
     unsafe { Self::from_state(lua.0, value) }
   }
 
   pub fn pointer(&self) -> *const c_void {
     unsafe {
       let state = self.state;
-      state.fg_checkstack(1);
       state.fg_pushvalue(self);
       let ptr = state.lua_topointer(-1);
       state.lua_pop(1);
@@ -115,7 +99,6 @@ impl<'l> LuaValue<'l> {
   pub fn get_type(&self) -> LuaType {
     unsafe {
       let state = self.state;
-      state.fg_checkstack(1);
       state.fg_pushvalue(self);
       let t = state.fg_type(-1);
       state.lua_pop(1);
@@ -126,7 +109,6 @@ impl<'l> LuaValue<'l> {
   pub fn try_as<T: GetFromLua<'l>>(&self) -> Result<T, T::Error> {
     unsafe {
       let state = self.state;
-      state.fg_checkstack(1);
       state.fg_pushvalue(self);
       let value = state.fg_getvalue(-1);
       state.lua_pop(1);

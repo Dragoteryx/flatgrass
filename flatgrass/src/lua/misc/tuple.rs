@@ -27,16 +27,11 @@ impl<T> IntoIterator for Tuple<T> {
 
 // lua impls ------------------------
 
-impl<'l, T: PushToLua<'l>> LuaReturn<'l> for Tuple<T> {
-  type Error = Infallible;
-
-  unsafe fn push(state: LuaState<'l>, value: Self) -> Result<i32, Self::Error> {
-    let nret = value.0.into_iter().map(|value| {
-      state.fg_checkstack(1);
+impl<T: PushToLua> PushManyToLua for Tuple<T> {
+  unsafe fn push_many(state: LuaState, value: Self) {
+    for value in value.0 {
       state.fg_pushvalue(value);
-    }).count().try_into().unwrap();
-
-    Ok(nret)
+    }
   }
 }
 

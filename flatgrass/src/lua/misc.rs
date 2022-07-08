@@ -1,22 +1,13 @@
 use std::fmt;
 use super::*;
 
-// realm -------------------------------
+mod tuple; pub use tuple::*;
+mod gc; pub use gc::*;
+
+// nil type ---------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Realm {
-  Server,
-  Client,
-  Menu
-}
-
-impl<'l> LuaArg<'l> for Realm {
-  type Error = Infallible;
-
-  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
-    Ok(Lua::from_state(state).realm())
-  }
-}
+pub struct Nil;
 
 // lua type ---------------------------
 
@@ -49,4 +40,36 @@ impl fmt::Display for LuaType {
       Self::LightUserdata => write!(f, "lightuserdata")
     }
   }    
+}
+
+// realm -------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Realm {
+  Server,
+  Client,
+  Menu
+}
+
+impl<'l> LuaArg<'l> for Realm {
+  type Error = &'static str;
+
+  unsafe fn resolve(state: LuaState, _: &mut i32) -> Result<Self, Self::Error> {
+    Self::from_state(state).ok_or("invalid realm")
+  }
+}
+
+impl Realm {
+  pub unsafe fn from_state(state: LuaState) -> Option<Self> {
+    let globals = Globals::from_state(state);
+    let server = globals.get("SERVER").and_then(|v| v.try_as().ok()).unwrap_or_default();
+    let client = globals.get("CLIENT").and_then(|v| v.try_as().ok()).unwrap_or_default();
+    let menu = globals.get("MENU_DLL").and_then(|v| v.try_as().ok()).unwrap_or_default();
+    match (server, client, menu) {
+      (true, false, false) => Some(Self::Server),
+      (false, true, false) => Some(Self::Client),
+      (false, false, true) => Some(Self::Menu),
+      _ => None
+    }
+  }
 }

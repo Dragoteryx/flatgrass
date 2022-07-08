@@ -2,10 +2,9 @@ use std::convert::Infallible;
 use crate::ffi::*;
 
 mod value; pub use value::*;
-pub mod errors; use errors::*;
 pub mod traits; use traits::*;
-pub mod util; use util::*;
-mod misc; pub use misc::*;
+pub mod errors; use errors::*;
+pub mod misc; use misc::*;
 
 #[repr(transparent)]
 #[derive(Clone)]
@@ -21,10 +20,10 @@ impl<'l> LuaArg<'l> for Lua<'l> {
   }
 }
 
-impl<'l> LuaReturn<'l> for Lua<'l> {
+impl<'l> LuaReturn for Lua<'l> {
   type Error = Infallible;
 
-  unsafe fn push(state: LuaState, _: Self) -> Result<i32, Self::Error> {
+  unsafe fn push_return(state: LuaState, _: Self) -> Result<i32, Self::Error> {
     Ok(state.lua_gettop())
   }
 }
@@ -36,6 +35,10 @@ impl<'l> Lua<'l> {
     Self(state)
   }
 
+  pub fn push(&self, value: impl PushToLua) {
+    unsafe { self.0.fg_pushvalue(value); }
+  }
+
   pub fn gc(&self) -> LuaGc<'l> {
     unsafe { LuaGc::from_state(self.0) }
   }
@@ -44,17 +47,15 @@ impl<'l> Lua<'l> {
     unsafe { Globals::from_state(self.0) }
   }
 
-  pub fn realm(&self) -> Realm {
-    let globals = self.globals();
-    let server = globals.get("SERVER").and_then(|v| v.try_as().ok()).unwrap_or_default();
-    let client = globals.get("CLIENT").and_then(|v| v.try_as().ok()).unwrap_or_default();
-    let menu = globals.get("MENU_DLL").and_then(|v| v.try_as().ok()).unwrap_or_default();
-    match (server, client, menu) {
-      (true, false, false) => Realm::Server,
-      (false, true, false) => Realm::Client,
-      (false, false, true) => Realm::Menu,
-      _ => unreachable!()
-    }
+  pub fn realm(&self) -> Option<Realm> {
+    unsafe { Realm::from_state(self.0) }
+  }
+
+  pub fn print(&self, values: impl PushManyToLua) -> bool {
+    self.globals().get("print")
+      .and_then(|print| print.try_as::<func::Function>().ok())
+      .map(|print| print.call(values).is_ok())
+      .unwrap_or_default()
   }
 }
 

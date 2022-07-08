@@ -19,9 +19,9 @@ impl<'a, 'l> Iterator for Pairs<'a, 'l> {
 
     unsafe {
       let state = self.table.0.state;
-      state.fg_checkstack(3);
       state.fg_pushvalue(self.table);
       state.fg_pushvalue(&self.prev);
+      state.fg_checkstack(1);
       if state.lua_next(-2) != 0 {
         let value = LuaValue::pop(state);
         let key = LuaValue::pop(state);

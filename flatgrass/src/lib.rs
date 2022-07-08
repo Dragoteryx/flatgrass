@@ -3,6 +3,7 @@
 #![feature(c_unwind)]
 
 pub use flatgrass_macros::*;
+mod macros;
 
 /// Contains the FFI bindings for the Lua C API, as well as type definitions.
 /// 
@@ -12,20 +13,16 @@ pub mod ffi;
 /// Safe abstraction over the Lua C API, you should probably use this.
 pub mod lua;
 
-/// Garry's Mod specific types. (Angles and Vectors)
-pub mod gmod;
+/// Garry's Mod types and libraries.
+pub mod gm;
 
 pub mod prelude {
+  pub use crate::printfg;
   pub use crate::ffi::LuaCFunction;
   pub use crate::lua::{
     Lua, LuaValue, Globals,
     func::Function,
     table::Table, 
-    util::Tuple
+    misc::Tuple
   };
-
-  pub use crate::printfg;
-  pub use crate::errorfg;
 }
-
-mod macros;

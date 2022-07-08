@@ -54,7 +54,7 @@ pub fn gen_function(lua_ident: syn::Ident, func: syn::ItemFn) -> TokenStream2 {
 
   match &func.sig.output {
     syn::ReturnType::Type(_, typ) => {
-      let ret = spanned!(typ, LuaReturn::push(state, ret).map_err(|err| format!("{}", err)));
+      let ret = spanned!(typ, LuaReturn::push_return(state, ret).map_err(|err| format!("{}", err)));
 
       quote::quote!(
         #func

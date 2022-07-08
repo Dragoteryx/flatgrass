@@ -1,16 +1,17 @@
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Globals<'l>(Table<'l>);
 
 // lua impls -----------------------
 
-impl<'l> PushToLua<'l> for &Globals<'l> {
+impl<'l> PushToLua for &Globals<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(&value.0);
   }
 }
 
-impl<'l> PushToLua<'l> for Globals<'l> {
+impl<'l> PushToLua for Globals<'l> {
   unsafe fn push(state: LuaState, value: Self) {
     state.fg_pushvalue(value.0);
   }
@@ -28,16 +29,15 @@ impl<'l> LuaArg<'l> for Globals<'l> {
 
 impl<'l> Globals<'l> {
   pub unsafe fn from_state(state: LuaState<'l>) -> Self {
-    state.fg_checkstack(1);
-    state.lua_pushvalue(LUA_GLOBALSINDEX);
+    state.fg_pushindex(LUA_GLOBALSINDEX);
     Self(Table::pop(state))
   }
 
-  pub fn get(&self, key: impl PushToLua<'l>) -> Option<LuaValue<'l>> {
+  pub fn get(&self, key: impl PushToLua) -> Option<LuaValue<'l>> {
     self.0.get(key)
   }
 
-  pub fn set(&self, key: impl PushToLua<'l>, value: impl PushToLua<'l>) {
+  pub fn set(&self, key: impl PushToLua, value: impl PushToLua) {
     self.0.set(key, value);
   }
 

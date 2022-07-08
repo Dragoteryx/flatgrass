@@ -15,10 +15,3 @@ macro_rules! printfg {
 		$crate::lua::Lua::print(&$lua, format!($($arg),*))
 	};
 }
-
-#[macro_export]
-macro_rules! errorfg {
-	($lua:expr, $($arg:expr),*) => {
-		$crate::lua::Lua::error(&$lua, format!($($arg),*))
-	};
-}

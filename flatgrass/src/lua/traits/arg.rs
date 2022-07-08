@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::Display;
 use super::*;
 
 /// Types that implement this trait can be used as parameter for a Lua function.
@@ -6,7 +6,7 @@ use super::*;
 /// implement this trait via a blanket implementation,
 /// so you should implement it instead whenever possible.
 pub trait LuaArg<'l>: Sized {
-  type Error: fmt::Display;
+  type Error: Display;
 
   unsafe fn resolve(state: LuaState<'l>, narg: &mut i32) -> Result<Self, Self::Error>;
 }
