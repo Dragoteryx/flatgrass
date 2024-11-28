@@ -1,45 +1,59 @@
 use libloading::Library;
-use once_cell::sync::Lazy;
-use std::path::PathBuf;
+use std::path::Path;
+use std::sync::LazyLock;
 
-#[cfg(all(target_os = "windows", target_arch = "x86"))]
-pub static LUA_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| {
-  [ "garrysmod/bin/lua_shared.dll",
-    "bin/lua_shared.dll"].into_iter()
-    .map(|str| PathBuf::from(str))
-    .find(|path| path.exists())
-});
+#[allow(unused_macros)]
+macro_rules! find_lua_path {
+	($($path:literal),+ $(,)?) => {
+		[ $($path),+ ]
+			.into_iter()
+			.map(Path::new)
+			.find(|path| path.exists())
+	};
+}
 
-#[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-pub static LUA_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| {
-  Some(PathBuf::from("bin/win64/lua_shared.dll"))
-});
+#[cfg(fg_win32)]
+fn lua_path() -> Option<&'static Path> {
+	find_lua_path! {
+		"garrysmod/bin/lua_shared.dll",
+		"bin/lua_shared.dll",
+	}
+}
 
-#[cfg(all(target_os = "linux", target_arch = "x86"))]
-pub static LUA_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| {
-  [ "garrysmod/bin/lua_shared_srv.so",
-    "garrysmod/bin/lua_shared.so",
-    "bin/linux32/lua_shared.so",
-    "bin/linux32/lua_shared_client.so"].into_iter()
-    .map(|str| PathBuf::from(str))
-    .find(|path| path.exists())
-});
+#[cfg(fg_win64)]
+fn lua_path() -> Option<&'static Path> {
+	find_lua_path! {
+		"bin/win64/lua_shared.dll",
+	}
+}
 
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-pub static LUA_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| {
-  [ "bin/linux64/lua_shared.so",
-    "bin/linux64/lua_shared_client.so"].into_iter()
-    .map(|str| PathBuf::from(str))
-    .find(|path| path.exists())
-});
+#[cfg(fg_linux32)]
+fn lua_path() -> Option<&'static Path> {
+	find_lua_path! {
+		"garrysmod/bin/lua_shared_srv.so",
+		"garrysmod/bin/lua_shared.so",
+		"bin/linux32/lua_shared.so",
+		"bin/linux32/lua_shared_client.so",
+	}
+}
 
-#[cfg(all(target_os = "macos"))]
-pub static LUA_PATH: Lazy<Option<PathBuf>> =Lazy::new(|| {
-  Some(PathBuf::from("garrysmod/bin/lua_shared.dylib"))
-});
+#[cfg(fg_linux64)]
+fn lua_path() -> Option<&'static Path> {
+	find_lua_path! {
+		"bin/linux64/lua_shared.so",
+		"bin/linux64/lua_shared_client.so",
+	}
+}
 
-pub static LUA_SHARED: Lazy<Library> = Lazy::new(|| {
-  LUA_PATH.as_ref()
-    .and_then(|path| unsafe { Library::new(path).ok() })
-    .expect("Could not open lua_shared.dll")
+#[cfg(fg_unsupported)]
+fn lua_path() -> Option<&'static Path> {
+	compile_error!("this platform isn't supported");
+	None
+}
+
+/// The `lua_shared` library.
+pub static LUA_SHARED: LazyLock<Library> = LazyLock::new(|| {
+	lua_path()
+		.and_then(|path| unsafe { Library::new(path).ok() })
+		.expect("failed to open lua_shared")
 });

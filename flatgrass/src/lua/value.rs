@@ -1,118 +1,130 @@
-use libc::c_void;
-use std::fmt;
-use super::*;
+use super::errors::FromLuaError;
+use super::traits::{FromLua, ToLua, ToLuaIter};
+use std::fmt::{self, Debug};
+use std::mem::forget;
 
-pub mod func; use func::*;
-pub mod table; use table::*;
-pub use table::Globals;
+mod reference;
+pub use reference::*;
 
-pub struct LuaValue<'l> {
-  state: LuaState<'l>,
-  lref: i32
+#[cfg(feature = "serde")]
+mod serde;
+
+pub type LightUserdata = *mut crate::ffi::c_void;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum LuaType {
+	Nil,
+	Bool,
+	Number,
+	String,
+	Table,
+	Function,
+	Userdata,
+	Coroutine,
+	LightUserdata,
 }
 
-// misc impls ------------------------------
-
-impl<'l> Clone for LuaValue<'l> {
-  fn clone(&self) -> Self {
-    unsafe { Self::from_state(self.state, self) }
-  }
+impl LuaType {
+	pub const fn name(self) -> &'static str {
+		match self {
+			Self::Nil => "nil",
+			Self::Bool => "boolean",
+			Self::Number => "number",
+			Self::String => "string",
+			Self::Table => "table",
+			Self::Function => "function",
+			Self::Userdata => "userdata",
+			Self::Coroutine => "coroutine",
+			Self::LightUserdata => "lightuserdata",
+		}
+	}
 }
 
-impl<'l> Drop for LuaValue<'l> {
-  fn drop(&mut self) {
-    unsafe { self.state.luaL_unref(LUA_ENVIRONINDEX, self.lref); }
-  }
+#[derive(Default, Clone, PartialEq, PartialOrd)]
+pub enum LuaValue {
+	#[default]
+	Nil,
+	Bool(bool),
+	Number(f64),
+	String(LuaString),
+	Table(Table),
+	Function(Function),
+	Userdata(Userdata),
+	Coroutine(Coroutine),
+	LightUserdata(LightUserdata),
 }
 
-impl<'l> fmt::Debug for LuaValue<'l> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.get_type() {
-      LuaType::Nil => write!(f, "nil"),
-      LuaType::Boolean => self.try_as::<bool>().unwrap().fmt(f),
-      LuaType::Number => self.try_as::<f64>().unwrap().fmt(f),
-      LuaType::String => self.try_as::<String>().unwrap().fmt(f),
-      LuaType::Table => self.try_as::<Table>().unwrap().fmt(f),
-      LuaType::Function => self.try_as::<Function>().unwrap().fmt(f),
-      LuaType::Userdata => write!(f, "Userdata ({:p})", self.pointer()),
-      LuaType::Thread => write!(f, "Thread ({:p})", self.pointer()),
-      LuaType::LightUserdata => write!(f, "LightUserdata ({:p})", self.pointer()),
-      LuaType::None => unreachable!()
-    }   
-  }
+impl LuaValue {
+	pub const fn get_type(&self) -> LuaType {
+		match self {
+			Self::Nil => LuaType::Nil,
+			Self::Bool(_) => LuaType::Bool,
+			Self::Number(_) => LuaType::Number,
+			Self::String(_) => LuaType::String,
+			Self::Table(_) => LuaType::Table,
+			Self::Function(_) => LuaType::Function,
+			Self::Userdata(_) => LuaType::Userdata,
+			Self::Coroutine(_) => LuaType::Coroutine,
+			Self::LightUserdata(_) => LuaType::LightUserdata,
+		}
+	}
+
+	pub const fn truthy(&self) -> bool {
+		!self.falsy()
+	}
+
+	pub const fn falsy(&self) -> bool {
+		matches!(self, Self::Nil | Self::Bool(false))
+	}
+
+	pub const fn is_nil(&self) -> bool {
+		matches!(self, Self::Nil)
+	}
+
+	pub const fn not_nil(self) -> Option<Self> {
+		if !self.is_nil() {
+			Some(self)
+		} else {
+			forget(self);
+			None
+		}
+	}
 }
 
-// lua impls --------------------------------
+impl ToLua for LuaValue {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		self.clone()
+	}
 
-impl<'l> PushToLua for &LuaValue<'l> {
-  unsafe fn push(state: LuaState, value: Self) {
-    state.fg_checkstack(1);
-    state.lua_rawgeti(LUA_ENVIRONINDEX, value.lref);
-  }
+	fn to_lua(self) -> LuaValue {
+		self
+	}
 }
 
-impl<'l> PushToLua for LuaValue<'l> {
-  unsafe fn push(state: LuaState, value: Self) {
-    state.fg_pushvalue(&value);
-  }
+impl FromLua for LuaValue {
+	type Err = FromLuaError<'static>;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+		Ok(value)
+	}
+
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::no_value())
+	}
 }
 
-impl<'l> GetFromLua<'l> for LuaValue<'l> {
-  type Error = GetFromLuaError;
-
-  unsafe fn try_get(state: LuaState<'l>, idx: i32) -> Result<Self, Self::Error> {
-    if state.fg_type(idx) == LuaType::None {
-      Err(GetFromLuaError::NoValue)
-    } else {
-      state.fg_pushindex(idx);
-      Ok(Self::pop(state))
-    }
-  }
-}
-
-// main impl -------------------------
-
-impl<'l> LuaValue<'l> {
-  pub unsafe fn pop(state: LuaState<'l>) -> Self {
-    Self { state, lref: state.luaL_ref(LUA_ENVIRONINDEX) }
-  }
-
-  pub unsafe fn from_state(state: LuaState<'l>, value: impl PushToLua) -> Self {
-    state.fg_pushvalue(value);
-    Self::pop(state)
-  }
-
-  pub fn new(lua: &Lua<'l>, value: impl PushToLua) -> Self {
-    unsafe { Self::from_state(lua.0, value) }
-  }
-
-  pub fn pointer(&self) -> *const c_void {
-    unsafe {
-      let state = self.state;
-      state.fg_pushvalue(self);
-      let ptr = state.lua_topointer(-1);
-      state.lua_pop(1);
-      ptr
-    }
-  }
-
-  pub fn get_type(&self) -> LuaType {
-    unsafe {
-      let state = self.state;
-      state.fg_pushvalue(self);
-      let t = state.fg_type(-1);
-      state.lua_pop(1);
-      t
-    }
-  }
-
-  pub fn try_as<T: GetFromLua<'l>>(&self) -> Result<T, T::Error> {
-    unsafe {
-      let state = self.state;
-      state.fg_pushvalue(self);
-      let value = state.fg_getvalue(-1);
-      state.lua_pop(1);
-      value
-    }
-  }
+impl Debug for LuaValue {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Self::Nil => write!(f, "nil"),
+			Self::Bool(bl) => Debug::fmt(bl, f),
+			Self::Number(num) => Debug::fmt(num, f),
+			Self::String(lstr) => Debug::fmt(lstr, f),
+			Self::Table(tbl) => Debug::fmt(tbl, f),
+			Self::Function(func) => Debug::fmt(func, f),
+			Self::Userdata(ud) => Debug::fmt(ud, f),
+			Self::Coroutine(cor) => Debug::fmt(cor, f),
+			Self::LightUserdata(lud) => Debug::fmt(lud, f),
+		}
+	}
 }

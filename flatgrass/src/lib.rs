@@ -1,12 +1,11 @@
-#![deny(clippy::cast_possible_truncation)]
+#![cfg_attr(docsrs, feature(doc_notable_trait))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![warn(clippy::use_self)]
-#![feature(c_unwind)]
 
-pub use flatgrass_macros::*;
-mod macros;
+pub use flatgrass_macros::{entry, exit, function};
 
-/// Contains the FFI bindings for the Lua C API, as well as type definitions.
-/// 
+/// FFI bindings to the Lua C API, as well as type definitions.
+///
 /// For more information, see [the Lua 5.1 manual](https://www.lua.org/manual/5.1/manual.html#3).
 pub mod ffi;
 
@@ -16,13 +15,13 @@ pub mod lua;
 /// Garry's Mod types and libraries.
 pub mod gm;
 
+/// Re-exports commonly used macros and types.
 pub mod prelude {
-  pub use crate::printfg;
-  pub use crate::ffi::LuaCFunction;
-  pub use crate::lua::{
-    Lua, LuaValue, Globals,
-    func::Function,
-    table::Table, 
-    misc::Tuple
-  };
+	pub use crate::gm::printfg;
+	pub use crate::lua::errors::LuaError;
+	#[doc(no_inline)]
+	pub use crate::lua::traits::{FromLua, ToLua};
+	pub use crate::lua::value::{Function, LuaValue, Table};
+	pub use crate::lua::{func, globals, table};
+	pub use crate::lua::{Lua, LuaStack};
 }

@@ -1,46 +1,104 @@
 use super::*;
 
-/// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
-pub type LuaHook = unsafe extern "C-unwind" fn(state: LuaState, debug: *mut LuaDebug);
+/// See the Lua 5.1 manual: [`lua_Debug`](https://www.lua.org/manual/5.1/manual.html#lua_Debug)
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct lua_Debug {
+	pub event: c_int,
+	pub name: *const c_char,
+	pub namewhat: *const c_char,
+	pub what: *const c_char,
+	pub source: *const c_char,
+	pub currentline: c_int,
+	pub nups: c_int,
+	pub linedefined: c_int,
+	pub lastlinedefined: c_int,
+	pub short_src: [c_char; 128],
+	i_ci: c_int,
+}
+
+impl Default for lua_Debug {
+	fn default() -> Self {
+		Self {
+			event: 0,
+			name: std::ptr::null(),
+			namewhat: std::ptr::null(),
+			what: std::ptr::null(),
+			source: std::ptr::null(),
+			currentline: 0,
+			nups: 0,
+			linedefined: 0,
+			lastlinedefined: 0,
+			short_src: [0; 128],
+			i_ci: 0,
+		}
+	}
+}
 
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
-pub const LUA_HOOKCALL: c_int =	0;
+pub type lua_Hook = unsafe extern "C-unwind" fn(state: *mut lua_State, debug: *mut lua_Debug);
 
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
-pub const LUA_HOOKRET: c_int =	1;
+pub const LUA_HOOKCALL: c_int = 0;
 
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
-pub const LUA_HOOKLINE: c_int =	2;
+pub const LUA_HOOKRET: c_int = 1;
 
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
-pub const LUA_HOOKCOUNT: c_int =	3;
+pub const LUA_HOOKLINE: c_int = 2;
+
+/// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
+pub const LUA_HOOKCOUNT: c_int = 3;
 
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
 pub const LUA_HOOKTAILRET: c_int = 4;
 
 /// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
-pub const LUA_MASKCALL: c_int =	1 << LUA_HOOKCALL;
+pub const LUA_MASKCALL: c_int = 1 << LUA_HOOKCALL;
 
 /// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
 pub const LUA_MASKRET: c_int = 1 << LUA_HOOKRET;
 
 /// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
-pub const LUA_MASKLINE: c_int =	1 << LUA_HOOKLINE;
+pub const LUA_MASKLINE: c_int = 1 << LUA_HOOKLINE;
 
 /// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
 pub const LUA_MASKCOUNT: c_int = 1 << LUA_HOOKCOUNT;
 
-impl LuaState<'_> {
-  fetch_lua!(fn lua_gethook(self) -> LuaHook);
-  fetch_lua!(fn lua_gethookcount(self) -> c_int);
-  fetch_lua!(fn lua_gethookmask(self) -> c_int);
-  fetch_lua!(fn lua_getinfo(self, what: *const c_char, debug: *mut LuaDebug) -> c_int);
-  fetch_lua!(fn lua_getlocal(self, debug: *mut LuaDebug, n: c_int) -> *const c_char);
-  fetch_lua!(fn lua_getstack(self, lvl: c_int, debug: *mut LuaDebug) -> c_int);
-  fetch_lua!(fn lua_getupvalue(self, idx: c_int, n: c_int) -> *const c_char);
-  fetch_lua!(fn lua_sethook(self, hook: LuaHook, mask: c_int, count: c_int) -> c_int);
-  fetch_lua!(fn lua_setlocal(self, debug: *mut LuaDebug, n: c_int) -> *const c_char);
-  fetch_lua!(fn lua_setupvalue(self, idx: c_int, n: c_int) -> *const c_char);
-}
+import_lua! {
+	/// See the Lua 5.1 manual: [`lua_gethook`](https://www.lua.org/manual/5.1/manual.html#lua_gethook)
+	pub fn lua_gethook(state: *mut lua_State) -> lua_Hook;
 
-// todo: add the functions from Lua 5.2
+	/// See the Lua 5.1 manual: [`lua_gethookcount`](https://www.lua.org/manual/5.1/manual.html#lua_gethookcount)
+	pub fn lua_gethookcount(state: *mut lua_State) -> c_int;
+
+	/// See the Lua 5.1 manual: [`lua_gethookmask`](https://www.lua.org/manual/5.1/manual.html#lua_gethookmask)
+	pub fn lua_gethookmask(state: *mut lua_State) -> c_int;
+
+	/// See the Lua 5.1 manual: [`lua_getinfo`](https://www.lua.org/manual/5.1/manual.html#lua_getinfo)
+	pub fn lua_getinfo(state: *mut lua_State, what: *const c_char, debug: *mut lua_Debug) -> c_int;
+
+	/// See the Lua 5.1 manual: [`lua_getlocal`](https://www.lua.org/manual/5.1/manual.html#lua_getlocal)
+	pub fn lua_getlocal(state: *mut lua_State, debug: *mut lua_Debug, n: c_int) -> *const c_char;
+
+	/// See the Lua 5.1 manual: [`lua_getstack`](https://www.lua.org/manual/5.1/manual.html#lua_getstack)
+	pub fn lua_getstack(state: *mut lua_State, lvl: c_int, debug: *mut lua_Debug) -> c_int;
+
+	/// See the Lua 5.1 manual: [`lua_getupvalue`](https://www.lua.org/manual/5.1/manual.html#lua_getupvalue)
+	pub fn lua_getupvalue(state: *mut lua_State, idx: c_int, n: c_int) -> *const c_char;
+
+	/// See the Lua 5.1 manual: [`lua_sethook`](https://www.lua.org/manual/5.1/manual.html#lua_sethook)
+	pub fn lua_sethook(state: *mut lua_State, hook: lua_Hook, mask: c_int, count: c_int) -> c_int;
+
+	/// See the Lua 5.1 manual: [`lua_setlocal`](https://www.lua.org/manual/5.1/manual.html#lua_setlocal)
+	pub fn lua_setlocal(state: *mut lua_State, debug: *mut lua_Debug, n: c_int) -> *const c_char;
+
+	/// See the Lua 5.1 manual: [`lua_setupvalue`](https://www.lua.org/manual/5.1/manual.html#lua_setupvalue)
+	pub fn lua_setupvalue(state: *mut lua_State, idx: c_int, n: c_int) -> *const c_char;
+
+	/// Backported from Lua 5.2: [`lua_upvalueid`](https://www.lua.org/manual/5.2/manual.html#lua_upvalueid)
+	pub fn lua_upvalueid(state: *mut lua_State, idx: c_int, n: c_int) -> *mut c_void;
+
+	/// Backported from Lua 5.2: [`lua_upvaluejoin`](https://www.lua.org/manual/5.2/manual.html#lua_upvaluejoin)
+	pub fn lua_upvaluejoin(state: *mut lua_State, idx1: c_int, n1: c_int, idx2: c_int, n2: c_int);
+}

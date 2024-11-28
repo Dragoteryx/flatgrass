@@ -1,65 +1,80 @@
-use proc_macro2::TokenStream as TokenStream2;
 use proc_macro::TokenStream;
-use syn::spanned::Spanned;
 
-#[macro_use]
-mod util; use util::*;
+mod derive;
 
-/// Creates a new function that acts as the entry function of your module.
+mod func;
+
+/// Marks a function as the entry point of your module.
+///
+/// This function is called when your module is first required from Lua.\
+/// For this to work, it needs to be declared at the root of your library and
+/// to be paired with another function marked with `#[flatgrass::exit]`.
 /// ```
 /// #[flatgrass::entry]
-/// pub fn entry(lua: Lua) {
-///   printfg!(lua, "Hello!");
+/// pub fn entry() {
+///   printfg!("Hello from binary module!");
 /// }
 /// ```
-/// This is an alias for:
-/// ```
-/// #[flatgrass:function(gmod13_open)]
-/// ```
 #[proc_macro_attribute]
-pub fn entry(_: TokenStream, item: TokenStream) -> TokenStream {
-  let item = syn::parse_macro_input!(item as syn::ItemFn);
-  let ident = quote::format_ident!("gmod13_open");
-
-  check_valid(&item)
-    .unwrap_or_else(|| gen_function(ident, item))
-    .into()
+pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
+	let func = syn::parse_macro_input!(input as syn::ItemFn);
+	func::generate_entry(&func).into()
 }
 
-/// Creates a new function that acts as the exit function of your module.
+/// Marks a function as the exit point of your module.
+///
+/// For this to work, it needs to be declared at the root of your library and
+/// to be paired with another function marked with `#[flatgrass::entry]`.
 /// ```
 /// #[flatgrass::exit]
-/// pub fn exit(lua: Lua) {
-///   printfg!(lua, "Goodbye!");
+/// pub fn exit() {
+///   printfg!("Goodbye from binary module!");
 /// }
 /// ```
-/// This is an alias for:
-/// ```
-/// #[flatgrass:function(gmod13_close)]
-/// ```
 #[proc_macro_attribute]
-pub fn exit(_: TokenStream, item: TokenStream) -> TokenStream {
-  let item = syn::parse_macro_input!(item as syn::ItemFn);
-  let ident = quote::format_ident!("gmod13_close");
-
-  check_valid(&item)
-    .unwrap_or_else(|| gen_function(ident, item))
-    .into()
+pub fn exit(args: TokenStream, input: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
+	let func = syn::parse_macro_input!(input as syn::ItemFn);
+	func::generate_exit(&func).into()
 }
 
-/// Creates a new function that can be pushed to the Lua environment.
+/// Generates the necessary glue code to call a function from Lua.
 /// ```
-/// #[flatgrass:function(lua_is_even)]
-/// pub const is_even(n: isize) -> bool {
-///   n % 2 == 0
+/// #[flatgrass::entry]
+/// pub fn entry() {
+///   globals! {
+///     add: func!(add)
+///   }
+/// }
+///
+/// #[flatgrass::function]
+/// pub fn add(a: f32, b: f32) -> f32 {
+///   a + b
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
-  let item = syn::parse_macro_input!(item as syn::ItemFn);
-  let ident = syn::parse_macro_input!(attr as syn::Ident);
+pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
+	let func = syn::parse_macro_input!(input as syn::ItemFn);
+	func::generate_func(&func).into()
+}
 
-  check_valid(&item)
-    .unwrap_or_else(|| gen_function(ident, item))
-    .into()
+/// Implements the `ToLua` trait for a struct.
+/// ```
+/// #[derive(ToLua)]
+/// struct MyStruct {
+///   a: f32,
+///   b: f32,
+/// }
+/// ```
+#[proc_macro_derive(ToLua)]
+pub fn derive_to_lua(input: TokenStream) -> TokenStream {
+	let derive = syn::parse_macro_input!(input as syn::DeriveInput);
+	derive::to_lua(derive).into()
+}
+
+#[proc_macro_derive(FromLua)]
+pub fn derive_from_lua(_: TokenStream) -> TokenStream {
+	todo!()
 }
