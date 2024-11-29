@@ -1,7 +1,5 @@
 use proc_macro::TokenStream;
 
-mod derive;
-
 mod func;
 
 /// Marks a function as the entry point of your module.
@@ -58,23 +56,4 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
 	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
 	let func = syn::parse_macro_input!(input as syn::ItemFn);
 	func::generate_func(&func).into()
-}
-
-/// Implements the `ToLua` trait for a struct.
-/// ```
-/// #[derive(ToLua)]
-/// struct MyStruct {
-///   a: f32,
-///   b: f32,
-/// }
-/// ```
-#[proc_macro_derive(ToLua)]
-pub fn derive_to_lua(input: TokenStream) -> TokenStream {
-	let derive = syn::parse_macro_input!(input as syn::DeriveInput);
-	derive::to_lua(derive).into()
-}
-
-#[proc_macro_derive(FromLua)]
-pub fn derive_from_lua(_: TokenStream) -> TokenStream {
-	todo!()
 }

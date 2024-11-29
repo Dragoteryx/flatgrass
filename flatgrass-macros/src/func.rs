@@ -116,13 +116,10 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		);
 	}
 
-	let async_enabled = cfg!(feature = "async");
-	if !async_enabled {
-		if let Some(asyncness) = &func.sig.asyncness {
-			errors.push(
-				quote_spanned!(asyncness.span => compile_error!("async Lua functions require the `async` feature")),
-			);
-		}
+	if let Some(asyncness) = &func.sig.asyncness {
+		errors.push(
+			quote_spanned!(asyncness.span => compile_error!("Lua functions cannot be async (yet)")),
+		);
 	}
 
 	if !errors.is_empty() {

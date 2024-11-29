@@ -116,12 +116,39 @@ impl Table {
 		self.raw_set(self.len() + 1, value);
 	}
 
+	pub fn raw_remove<K: ToLua>(&self, key: K) -> LuaValue {
+		let key = key.to_lua();
+		let value = self.raw_get(&key);
+		self.raw_set(key, LuaValue::Nil);
+		value
+	}
+
+	pub fn raw_pop(&self) -> LuaValue {
+		self.raw_remove(self.len())
+	}
+
 	pub fn get<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
+		static GET: ffi::lua_CFunction = ffi::raw_function!(|state| {
+			ffi::lua_gettable(state, 1);
+			1
+		});
+
 		let key = key.to_lua();
 		if key.is_nil() {
 			Ok(LuaValue::Nil)
 		} else {
-			todo!()
+			Lua::get(|lua| {
+				let stack = lua.stack();
+				stack.push_c_function(GET);
+				stack.push_table(self);
+				stack.push_any(key);
+				unsafe {
+					match ffi::lua_pcall(lua.state(), 2, 1, 0) {
+						0 => Ok(stack.pop_value_unchecked()),
+						_ => Err(stack.pop_value_unchecked())
+					}
+				}
+			})
 		}
 	}
 
@@ -130,16 +157,43 @@ impl Table {
 	}
 
 	pub fn set<K: ToLua, V: ToLua>(&self, key: K, value: V) -> Result<(), LuaValue> {
+		const SET: ffi::lua_CFunction = ffi::raw_function!(|state| {
+			ffi::lua_settable(state, 1);
+			0
+		});
+
 		let key = key.to_lua();
 		if key.is_nil() {
 			Ok(())
 		} else {
-			todo!()
+			Lua::get(|lua| {
+				let stack = lua.stack();
+				stack.push_c_function(SET);
+				stack.push_table(self);
+				stack.push_any(key);
+				stack.push_any(value);
+				unsafe {
+					match ffi::lua_pcall(lua.state(), 3, 0, 0) {
+						0 => Ok(()),
+						_ => Err(stack.pop_value_unchecked())
+					}
+				}
+			})
 		}
 	}
 
 	pub fn push<V: ToLua>(&self, value: V) -> Result<(), LuaValue> {
 		self.set(self.len() + 1, value)
+	}
+
+	pub fn remove<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
+		let value = self.get(&key)?;
+		self.set(key, LuaValue::Nil)?;
+		Ok(value)
+	}
+
+	pub fn pop(&self) -> Result<LuaValue, LuaValue> {
+		self.remove(self.len())
 	}
 
 	pub fn len(&self) -> usize {

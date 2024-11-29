@@ -9,6 +9,7 @@ use std::mem::replace;
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upvalue<T>(pub T);
 
+#[cfg_attr(docsrs, doc(notable_trait))]
 pub trait LuaFnParam<'l>: Sized {
 	type Err: ToLua;
 

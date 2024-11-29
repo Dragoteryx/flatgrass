@@ -5,9 +5,6 @@ use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use flatgrass_macros::FromLua;
-
-#[cfg_attr(docsrs, doc(notable_trait))]
 pub trait FromLua: Sized {
 	type Err;
 
