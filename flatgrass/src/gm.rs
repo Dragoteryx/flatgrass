@@ -6,18 +6,8 @@ use crate::prelude::*;
 pub use crate::printfg;
 mod macros;
 
-pub mod structs;
-
-pub fn print<T: AsRef<str>>(msg: T) {
-	if let LuaValue::Function(print) = Table::globals().raw_get("print") {
-		let msg = msg.as_ref();
-		for line in msg.lines() {
-			if print.call(line).is_err() {
-				break;
-			}
-		}
-	}
-}
+mod functions;
+pub use functions::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Realm {

@@ -1,5 +1,6 @@
 use super::*;
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
@@ -71,7 +72,7 @@ impl Function {
 		})
 	}
 
-	pub fn call<T: ToLuaIter>(&self, args: T) -> Result<Vec<LuaValue>, LuaValue> {
+	pub fn call<T: ToLuaIter>(&self, args: T) -> Result<VecDeque<LuaValue>, LuaValue> {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			let size = stack.size();
@@ -79,12 +80,11 @@ impl Function {
 			let n = stack.push_many(args);
 			let res = ffi::lua_pcall(lua.state(), n, ffi::LUA_MULTRET, 0);
 			if res == 0 {
-				let mut values = Vec::new();
+				let mut values = VecDeque::new();
 				while stack.size() > size {
-					values.push(stack.pop_value_unchecked());
+					values.push_front(stack.pop_value_unchecked());
 				}
-
-				values.reverse();
+				
 				Ok(values)
 			} else {
 				Err(stack.pop_value_unchecked())

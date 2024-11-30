@@ -6,13 +6,13 @@ use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 
 mod string;
-pub use string::*;
+pub use string::LuaString;
 
 mod function;
-pub use function::*;
+pub use function::Function;
 
 mod userdata;
-pub use userdata::*;
+pub use userdata::Userdata;
 
 pub mod table;
 #[doc(no_inline)]

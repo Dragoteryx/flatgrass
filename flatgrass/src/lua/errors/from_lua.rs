@@ -8,7 +8,7 @@ pub enum FromLuaError<'a> {
 	NoValue,
 }
 
-impl<'a> FromLuaError<'a> {
+impl FromLuaError<'_> {
 	pub const fn expected_and_got(expected: LuaType, got: LuaType) -> Self {
 		Self::ExpectedAndGot(Cow::Borrowed(expected.name()), Cow::Borrowed(got.name()))
 	}
@@ -22,8 +22,8 @@ impl<'a> FromLuaError<'a> {
 	}
 }
 
-impl<'a> Error for FromLuaError<'a> {}
-impl<'a> Display for FromLuaError<'a> {
+impl Error for FromLuaError<'_> {}
+impl Display for FromLuaError<'_> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			Self::ExpectedAndGot(expected, got) => write!(f, "{expected} expected, got {got}"),

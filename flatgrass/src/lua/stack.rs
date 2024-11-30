@@ -6,19 +6,21 @@ use std::ffi::CStr;
 use std::hint::unreachable_unchecked;
 use std::ptr::NonNull;
 
+/// Provides a relatively safe interface to the Lua stack.
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LuaStack {
 	state: NonNull<ffi::lua_State>,
 }
 
+/// An iterator over the values on the stack.
 #[derive(Debug, Clone, Copy)]
 pub struct LuaStackIter<'l> {
 	stack: &'l LuaStack,
 	idx: i32,
 }
 
-impl<'l> Iterator for LuaStackIter<'l> {
+impl Iterator for LuaStackIter<'_> {
 	type Item = LuaValue;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -36,14 +38,17 @@ impl<'l> Iterator for LuaStackIter<'l> {
 }
 
 impl LuaStack {
+	/// The raw Lua state associated with this stack.
 	pub fn state(&self) -> *mut ffi::lua_State {
 		self.state.as_ptr()
 	}
 
+	/// The [`Lua`] instance associated with this stack.
 	pub fn lua(&self) -> &Lua {
 		unsafe { &*(self as *const Self).cast() }
 	}
 
+	/// Iterate over the values on the stack.
 	pub fn iter(&self) -> LuaStackIter {
 		LuaStackIter {
 			stack: self,
@@ -51,7 +56,7 @@ impl LuaStack {
 		}
 	}
 
-	/// Returns the current size of the stack.
+	/// The current size of the stack.
 	pub fn size(&self) -> i32 {
 		unsafe { ffi::lua_gettop(self.state()) }
 	}
@@ -147,11 +152,12 @@ impl LuaStack {
 	///
 	/// # Safety
 	///
-	/// You must ensure that the index is valid.
+	/// You must ensure that the index contains a boolean.
 	pub unsafe fn get_bool_unchecked(&self, idx: i32) -> bool {
 		ffi::lua_toboolean(self.state(), idx) != 0
 	}
 
+	/// Returns the number at the `idx` index, or `None` if the value at that index isn't a number.
 	pub fn get_number(&self, idx: i32) -> Option<f64> {
 		if self.get_type(idx) == Some(LuaType::Number) {
 			Some(unsafe { self.get_number_unchecked(idx) })
@@ -160,10 +166,16 @@ impl LuaStack {
 		}
 	}
 
+	/// Returns the number at the `idx` index.
+	/// 
+	/// # Safety
+	/// 
+	/// You must ensure that the index contains a number.
 	pub unsafe fn get_number_unchecked(&self, idx: i32) -> f64 {
 		ffi::lua_tonumber(self.state(), idx)
 	}
 
+	// Returns the light userdata at the `idx` index, or `None` if the value at that index isn't a light userdata.
 	pub fn get_light_userdata(&self, idx: i32) -> Option<LightUserdata> {
 		if self.get_type(idx) == Some(LuaType::LightUserdata) {
 			Some(unsafe { self.get_light_userdata_unchecked(idx) })
@@ -172,6 +184,11 @@ impl LuaStack {
 		}
 	}
 
+	/// Returns the light userdata at the `idx` index.
+	/// 
+	/// # Safety
+	/// 
+	/// You must ensure that the index contains a light userdata.
 	pub unsafe fn get_light_userdata_unchecked(&self, idx: i32) -> LightUserdata {
 		ffi::lua_touserdata(self.state(), idx)
 	}
@@ -205,6 +222,7 @@ impl LuaStack {
 		self.pop_value().unwrap_unchecked()
 	}
 
+	/// Pops the boolean at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_bool(&self) -> Option<bool> {
 		if self.get_type(-1) == Some(LuaType::Bool) {
 			Some(unsafe { self.pop_bool_unchecked() })
@@ -213,12 +231,18 @@ impl LuaStack {
 		}
 	}
 
+	/// Pops the boolean at the top of the stack, returning it.
+	/// 
+	/// # Safety
+	/// 
+	/// You must ensure that the stack is not empty.
 	pub unsafe fn pop_bool_unchecked(&self) -> bool {
 		let bl = self.get_bool_unchecked(-1);
 		self.pop_n(1);
 		bl
 	}
 
+	/// Pops the number at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_number(&self) -> Option<f64> {
 		if self.get_type(-1) == Some(LuaType::Number) {
 			Some(unsafe { self.pop_number_unchecked() })
@@ -227,12 +251,18 @@ impl LuaStack {
 		}
 	}
 
+	/// Pops the number at the top of the stack, returning it.
+	/// 
+	/// # Safety
+	/// 
+	/// You must ensure that the value at the top of the stack is a number.
 	pub unsafe fn pop_number_unchecked(&self) -> f64 {
 		let num = self.get_number_unchecked(-1);
 		self.pop_n(1);
 		num
 	}
 
+	/// Pops the light userdata at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_light_userdata(&self) -> Option<LightUserdata> {
 		if self.get_type(-1) == Some(LuaType::LightUserdata) {
 			Some(unsafe { self.pop_light_userdata_unchecked() })
@@ -241,6 +271,11 @@ impl LuaStack {
 		}
 	}
 
+	/// Pops the light userdata at the top of the stack, returning it.
+	/// 
+	/// # Safety
+	/// 
+	/// You must ensure that the value at the top of the stack is a light userdata.
 	pub unsafe fn pop_light_userdata_unchecked(&self) -> LightUserdata {
 		let ptr = self.get_light_userdata_unchecked(-1);
 		self.pop_n(1);
@@ -278,6 +313,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a nil value on the stack.
 	#[track_caller]
 	pub fn push_nil(&self) {
 		if self.check_size(1) {
@@ -289,6 +325,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a boolean on the stack.
 	#[track_caller]
 	pub fn push_bool(&self, bl: bool) {
 		if self.check_size(1) {
@@ -300,6 +337,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a number on the stack.
 	#[track_caller]
 	pub fn push_number(&self, num: f64) {
 		if self.check_size(1) {
@@ -311,6 +349,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a string on the stack.
 	#[track_caller]
 	pub fn push_string(&self, rstr: &str) {
 		if self.check_size(1) {
@@ -322,6 +361,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a C string on the stack.
 	#[track_caller]
 	pub fn push_c_string(&self, cstr: &CStr) {
 		if self.check_size(1) {
@@ -333,6 +373,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes the location at the desired level on the stack.
 	#[track_caller]
 	pub fn push_location(&self, lvl: i32) {
 		if self.check_size(1) {
@@ -344,6 +385,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a new empty table on the stack.
 	#[track_caller]
 	pub fn push_new_table(&self) {
 		if self.check_size(1) {
@@ -355,6 +397,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a raw Lua function on the stack.
 	#[track_caller]
 	pub fn push_c_function(&self, func: ffi::lua_CFunction) {
 		if self.check_size(1) {
@@ -366,6 +409,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a raw Lua function on the stack with upvalues.
 	#[track_caller]
 	pub fn push_c_closure<T: ToLuaIter>(&self, func: ffi::lua_CFunction, upvalues: T) {
 		let nvalues = self.push_many(upvalues);
@@ -378,6 +422,7 @@ impl LuaStack {
 		}
 	}
 
+	/// Pushes a light userdata on the stack.
 	#[track_caller]
 	#[allow(clippy::not_unsafe_ptr_arg_deref)]
 	pub fn push_light_userdata(&self, ptr: LightUserdata) {

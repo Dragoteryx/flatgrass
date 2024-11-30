@@ -1,5 +1,6 @@
 use super::*;
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
@@ -13,8 +14,8 @@ pub enum Status {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Resume {
-	Return(Vec<LuaValue>),
-	Yield(Vec<LuaValue>),
+	Return(VecDeque<LuaValue>),
+	Yield(VecDeque<LuaValue>),
 }
 
 #[repr(transparent)]
@@ -89,12 +90,11 @@ impl Coroutine {
 				let n = stack.push_many(args);
 				match ffi::lua_resume(lua.state(), n) {
 					res @ (0 | ffi::LUA_YIELD) => {
-						let mut values = Vec::new();
+						let mut values = VecDeque::new();
 						while stack.size() > 0 {
-							values.push(stack.pop_value_unchecked());
+							values.push_front(stack.pop_value_unchecked());
 						}
 
-						values.reverse();
 						if res == 0 {
 							Ok(Resume::Return(values))
 						} else {

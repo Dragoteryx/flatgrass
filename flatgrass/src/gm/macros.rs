@@ -2,7 +2,7 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! printfg {
-	($($arg:expr),+) => {
-		$crate::gm::print(format!($($arg),*))
+	($($tt:tt)*) => {
+		$crate::gm::print(format!($($tt)*))
 	};
 }

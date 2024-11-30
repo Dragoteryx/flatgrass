@@ -8,6 +8,7 @@ readme = "README.md"
 doctest = false
 
 [features]
+macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
 either = ["dep:either"]
 
@@ -26,6 +27,7 @@ optional = true
 
 [dependencies.flatgrass-macros]
 path = "../flatgrass-macros"
+optional = true
 
 [package.metadata.docs.rs]
 all-features = true

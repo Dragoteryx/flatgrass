@@ -2,6 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![warn(clippy::use_self)]
 
+#[cfg(feature = "macros")]
 pub use flatgrass_macros::{entry, exit, function};
 
 /// FFI bindings to the Lua C API, as well as type definitions.
@@ -22,6 +23,6 @@ pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::lua::traits::{FromLua, ToLua};
 	pub use crate::lua::value::{Function, LuaValue, Table};
-	pub use crate::lua::{func, globals, table};
+	pub use crate::lua::{func, table};
 	pub use crate::lua::{Lua, LuaStack};
 }
