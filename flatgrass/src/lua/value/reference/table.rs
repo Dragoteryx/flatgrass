@@ -145,7 +145,7 @@ impl Table {
 				unsafe {
 					match ffi::lua_pcall(lua.state(), 2, 1, 0) {
 						0 => Ok(stack.pop_value_unchecked()),
-						_ => Err(stack.pop_value_unchecked())
+						_ => Err(stack.pop_value_unchecked()),
 					}
 				}
 			})
@@ -175,7 +175,7 @@ impl Table {
 				unsafe {
 					match ffi::lua_pcall(lua.state(), 3, 0, 0) {
 						0 => Ok(()),
-						_ => Err(stack.pop_value_unchecked())
+						_ => Err(stack.pop_value_unchecked()),
 					}
 				}
 			})
@@ -325,7 +325,7 @@ impl Debug for Table {
 		write!(f, "Table[{:?}] ", self.to_ptr())?;
 		self.recurse(|depth| match (depth > 0, self.is_sequential()) {
 			(false, false) => f.debug_map().entries(self.pairs()).finish(),
-			(false, true) => f.debug_list().entries(self.ipairs()).finish(),
+			(false, true) => f.debug_list().entries(self.ipairs().map(|(_, v)| v)).finish(),
 			(true, false) => write!(f, "{{..}}"),
 			(true, true) => write!(f, "[..]"),
 		})
@@ -341,13 +341,13 @@ impl PartialEq for Table {
 impl PartialOrd for Table {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Lua::get(|lua| match lua.equals(self, other) {
-			Some(true) => Some(Ordering::Equal),
 			None => None,
+			Some(true) => Some(Ordering::Equal),
 			Some(false) => match lua.less_than(self, other) {
-				Some(true) => Some(Ordering::Less),
 				Some(false) => Some(Ordering::Greater),
+				Some(true) => Some(Ordering::Less),
 				None => None,
-			}
+			},
 		})
 	}
 }
@@ -376,14 +376,15 @@ pub struct Ipairs<'a> {
 	key: usize,
 }
 
-impl<'a> Iterator for Ipairs<'a> {
-	type Item = LuaValue;
+impl Iterator for Ipairs<'_> {
+	type Item = (usize, LuaValue);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.table.raw_get(self.key).not_nil() {
 			Some(value) => {
+				let key = self.key;
 				self.key += 1;
-				Some(value)
+				Some((key, value))
 			}
 			None => {
 				self.key = 1;
@@ -399,7 +400,7 @@ pub struct Pairs<'a> {
 	key: LuaValue,
 }
 
-impl<'a> Iterator for Pairs<'a> {
+impl Iterator for Pairs<'_> {
 	type Item = (LuaValue, LuaValue);
 
 	fn next(&mut self) -> Option<Self::Item> {

@@ -167,9 +167,9 @@ impl LuaStack {
 	}
 
 	/// Returns the number at the `idx` index.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// You must ensure that the index contains a number.
 	pub unsafe fn get_number_unchecked(&self, idx: i32) -> f64 {
 		ffi::lua_tonumber(self.state(), idx)
@@ -185,9 +185,9 @@ impl LuaStack {
 	}
 
 	/// Returns the light userdata at the `idx` index.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// You must ensure that the index contains a light userdata.
 	pub unsafe fn get_light_userdata_unchecked(&self, idx: i32) -> LightUserdata {
 		ffi::lua_touserdata(self.state(), idx)
@@ -232,9 +232,9 @@ impl LuaStack {
 	}
 
 	/// Pops the boolean at the top of the stack, returning it.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// You must ensure that the stack is not empty.
 	pub unsafe fn pop_bool_unchecked(&self) -> bool {
 		let bl = self.get_bool_unchecked(-1);
@@ -252,9 +252,9 @@ impl LuaStack {
 	}
 
 	/// Pops the number at the top of the stack, returning it.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// You must ensure that the value at the top of the stack is a number.
 	pub unsafe fn pop_number_unchecked(&self) -> f64 {
 		let num = self.get_number_unchecked(-1);
@@ -272,9 +272,9 @@ impl LuaStack {
 	}
 
 	/// Pops the light userdata at the top of the stack, returning it.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// You must ensure that the value at the top of the stack is a light userdata.
 	pub unsafe fn pop_light_userdata_unchecked(&self) -> LightUserdata {
 		let ptr = self.get_light_userdata_unchecked(-1);

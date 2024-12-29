@@ -7,9 +7,9 @@ mod func;
 /// This function is called when your module is first required from Lua.\
 /// For this to work, it needs to be declared at the root of your library and
 /// to be paired with another function marked with `#[flatgrass::exit]`.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// #[flatgrass::entry]
 /// pub fn entry() {
@@ -27,9 +27,9 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// For this to work, it needs to be declared at the root of your library and
 /// to be paired with another function marked with `#[flatgrass::entry]`.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// #[flatgrass::exit]
 /// pub fn exit() {
@@ -44,9 +44,9 @@ pub fn exit(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 /// Generates the necessary glue code to call a function from Lua.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// #[flatgrass::function]
 /// pub fn add(a: f32, b: f32) -> f32 {

@@ -40,9 +40,9 @@ pub struct Lua {
 
 impl Lua {
 	/// Initializes a new Lua state and runs the given function with it.
-	/// 
+	///
 	/// # Safety
-	/// 
+	///
 	/// The Lua state passed as an argument must be valid.
 	pub unsafe fn init<T>(state: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
 		LUA_STATE.with(|static_state| {
@@ -51,7 +51,7 @@ impl Lua {
 			let lua = Self {
 				state: NonNull::new_unchecked(state),
 			};
-			
+
 			match catch_unwind(AssertUnwindSafe(|| func(&lua))) {
 				Err(_) => abort(),
 				Ok(res) => {
@@ -71,9 +71,9 @@ impl Lua {
 	}
 
 	/// Gets the current Lua state.
-	/// 
+	///
 	/// # Panics
-	/// 
+	///
 	/// Panics if the Lua state is not initialized.
 	pub fn get<T>(func: impl FnOnce(&Self) -> T) -> T {
 		Self::try_get(|lua| func(lua.expect("a Lua state")))

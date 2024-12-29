@@ -8,6 +8,7 @@ readme = "README.md"
 doctest = false
 
 [features]
+default = ["macros"]
 macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
 either = ["dep:either"]
@@ -28,6 +29,9 @@ optional = true
 [dependencies.flatgrass-macros]
 path = "../flatgrass-macros"
 optional = true
+
+[build-dependencies]
+rustc_version = "0.4"
 
 [package.metadata.docs.rs]
 all-features = true

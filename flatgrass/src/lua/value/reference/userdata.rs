@@ -9,6 +9,13 @@ pub struct Userdata {
 	reference: Rc<Reference>,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RawUserdata {
+	pub data: *mut ffi::c_void,
+	pub type_id: u8,	
+}
+
 impl LuaStack {
 	pub fn push_userdata(&self, udata: &Userdata) {
 		self.push_reference(&udata.reference);
@@ -44,13 +51,13 @@ impl LuaStack {
 }
 
 impl Userdata {
-	pub fn to_ptr(&self) -> *mut ffi::c_void {
+	pub fn to_ptr(&self) -> *mut RawUserdata {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_userdata(self);
 			let ptr = ffi::lua_touserdata(lua.state(), -1);
 			stack.pop_n(1);
-			ptr
+			ptr.cast()
 		})
 	}
 }
@@ -99,13 +106,13 @@ impl PartialEq for Userdata {
 impl PartialOrd for Userdata {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Lua::get(|lua| match lua.equals(self, other) {
-			Some(true) => Some(Ordering::Equal),
 			None => None,
+			Some(true) => Some(Ordering::Equal),
 			Some(false) => match lua.less_than(self, other) {
-				Some(true) => Some(Ordering::Less),
 				Some(false) => Some(Ordering::Greater),
+				Some(true) => Some(Ordering::Less),
 				None => None,
-			}
+			},
 		})
 	}
 }

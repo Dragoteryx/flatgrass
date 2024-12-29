@@ -1,5 +1,5 @@
-#![cfg_attr(docsrs, feature(doc_notable_trait))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(fg_nightly, feature(doc_notable_trait))]
+#![cfg_attr(fg_nightly, feature(doc_auto_cfg))]
 #![warn(clippy::use_self)]
 
 #[cfg(feature = "macros")]

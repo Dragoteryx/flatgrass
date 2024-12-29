@@ -84,7 +84,7 @@ impl Function {
 				while stack.size() > size {
 					values.push_front(stack.pop_value_unchecked());
 				}
-				
+
 				Ok(values)
 			} else {
 				Err(stack.pop_value_unchecked())
