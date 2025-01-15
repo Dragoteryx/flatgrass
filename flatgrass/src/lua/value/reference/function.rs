@@ -110,7 +110,7 @@ impl FromLua for Function {
 		if let LuaValue::Function(func) = value {
 			Ok(func)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Function,
 				value.get_type(),
 			))
@@ -118,7 +118,7 @@ impl FromLua for Function {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Function))
+		Err(FromLuaError::expected_type(LuaType::Function))
 	}
 }
 

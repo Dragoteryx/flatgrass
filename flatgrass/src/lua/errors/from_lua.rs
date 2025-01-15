@@ -8,13 +8,21 @@ pub enum FromLuaError<'a> {
 	NoValue,
 }
 
-impl FromLuaError<'_> {
-	pub const fn expected_and_got(expected: LuaType, got: LuaType) -> Self {
+impl<'a> FromLuaError<'a> {
+	pub const fn expected_and_got_type(expected: LuaType, got: LuaType) -> Self {
 		Self::ExpectedAndGot(Cow::Borrowed(expected.name()), Cow::Borrowed(got.name()))
 	}
 
-	pub const fn expected(expected: LuaType) -> Self {
+	pub const fn expected_type(expected: LuaType) -> Self {
 		Self::Expected(Cow::Borrowed(expected.name()))
+	}
+
+	pub fn expected_and_got<T: ?Sized + AsRef<str>, U: ?Sized + AsRef<str>>(expected: &'a T, got: &'a U) -> Self {
+		Self::ExpectedAndGot(Cow::Borrowed(expected.as_ref()), Cow::Borrowed(got.as_ref()))
+	}
+
+	pub fn expected<T: ?Sized + AsRef<str>>(expected: &'a T) -> Self {
+		Self::Expected(Cow::Borrowed(expected.as_ref()))
 	}
 
 	pub const fn no_value() -> Self {

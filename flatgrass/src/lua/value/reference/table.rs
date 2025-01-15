@@ -302,7 +302,7 @@ impl FromLua for Table {
 		if let LuaValue::Table(tbl) = value {
 			Ok(tbl)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Table,
 				value.get_type(),
 			))
@@ -310,7 +310,7 @@ impl FromLua for Table {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Table))
+		Err(FromLuaError::expected_type(LuaType::Table))
 	}
 }
 

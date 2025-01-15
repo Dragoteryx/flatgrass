@@ -1,5 +1,3 @@
-#![forbid(unsafe_code)]
-
 use crate::prelude::*;
 
 #[doc(inline)]
@@ -8,6 +6,9 @@ mod macros;
 
 mod functions;
 pub use functions::*;
+
+mod structs;
+pub use structs::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Realm {

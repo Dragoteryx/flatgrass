@@ -97,7 +97,7 @@ impl FromLua for LuaString {
 		if let LuaValue::String(lstr) = value {
 			Ok(lstr)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::String,
 				value.get_type(),
 			))
@@ -105,7 +105,7 @@ impl FromLua for LuaString {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::String))
+		Err(FromLuaError::expected_type(LuaType::String))
 	}
 }
 

@@ -11,7 +11,8 @@ pub use string::LuaString;
 mod function;
 pub use function::Function;
 
-mod userdata;
+pub mod userdata;
+#[doc(no_inline)]
 pub use userdata::Userdata;
 
 pub mod table;

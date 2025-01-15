@@ -22,7 +22,7 @@ pub mod prelude {
 	pub use crate::lua::errors::LuaError;
 	#[doc(no_inline)]
 	pub use crate::lua::traits::{FromLua, ToLua};
-	pub use crate::lua::value::{Function, LuaValue, Table};
+	pub use crate::lua::value::{Function, LuaValue, Table, Userdata};
 	pub use crate::lua::{func, table};
 	pub use crate::lua::{Lua, LuaStack};
 }

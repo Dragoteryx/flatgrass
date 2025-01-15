@@ -79,7 +79,7 @@ impl FromLua for Userdata {
 		if let LuaValue::Userdata(udata) = value {
 			Ok(udata)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Userdata,
 				value.get_type(),
 			))
@@ -87,7 +87,7 @@ impl FromLua for Userdata {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Userdata))
+		Err(FromLuaError::expected_type(LuaType::Userdata))
 	}
 }
 

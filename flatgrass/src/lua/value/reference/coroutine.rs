@@ -125,7 +125,7 @@ impl FromLua for Coroutine {
 		if let LuaValue::Coroutine(cor) = value {
 			Ok(cor)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Coroutine,
 				value.get_type(),
 			))
@@ -133,7 +133,7 @@ impl FromLua for Coroutine {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Coroutine))
+		Err(FromLuaError::expected_type(LuaType::Coroutine))
 	}
 }
 

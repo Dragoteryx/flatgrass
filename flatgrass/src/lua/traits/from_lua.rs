@@ -89,7 +89,7 @@ impl FromLua for bool {
 		if let LuaValue::Bool(bl) = value {
 			Ok(bl)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Bool,
 				value.get_type(),
 			))
@@ -97,7 +97,7 @@ impl FromLua for bool {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Bool))
+		Err(FromLuaError::expected_type(LuaType::Bool))
 	}
 }
 
@@ -108,7 +108,7 @@ impl FromLua for f32 {
 		if let LuaValue::Number(num) = value {
 			Ok(num as Self)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Number,
 				value.get_type(),
 			))
@@ -116,7 +116,7 @@ impl FromLua for f32 {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Number))
+		Err(FromLuaError::expected_type(LuaType::Number))
 	}
 }
 
@@ -127,7 +127,7 @@ impl FromLua for f64 {
 		if let LuaValue::Number(num) = value {
 			Ok(num)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::Number,
 				value.get_type(),
 			))
@@ -135,7 +135,7 @@ impl FromLua for f64 {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::Number))
+		Err(FromLuaError::expected_type(LuaType::Number))
 	}
 }
 
@@ -146,7 +146,7 @@ impl FromLua for LightUserdata {
 		if let LuaValue::LightUserdata(lud) = value {
 			Ok(lud)
 		} else {
-			Err(FromLuaError::expected_and_got(
+			Err(FromLuaError::expected_and_got_type(
 				LuaType::LightUserdata,
 				value.get_type(),
 			))
@@ -154,7 +154,7 @@ impl FromLua for LightUserdata {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::LightUserdata))
+		Err(FromLuaError::expected_type(LuaType::LightUserdata))
 	}
 }
 
@@ -166,7 +166,7 @@ impl FromLua for String {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::String))
+		Err(FromLuaError::expected_type(LuaType::String))
 	}
 }
 
@@ -178,6 +178,6 @@ impl FromLua for CString {
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected(LuaType::String))
+		Err(FromLuaError::expected_type(LuaType::String))
 	}
 }
