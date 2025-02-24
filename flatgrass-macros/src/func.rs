@@ -26,9 +26,9 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 
 			#(#errors;)*
 
-			#[no_mangle]
 			#[doc(hidden)]
-			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int {
+			#[unsafe(no_mangle)]
+			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 				use crate::{gmod13_open, gmod13_close};
 				0
 			}
@@ -37,9 +37,9 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 		quote! {
 			#tokens
 
-			#[no_mangle]
 			#[doc(hidden)]
-			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int {
+			#[unsafe(no_mangle)]
+			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 				use crate::{gmod13_open, gmod13_close};
 				::flatgrass::lua::Lua::init(state, |lua| {
 					lua.entry();
@@ -73,9 +73,9 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 
 			#(#errors;)*
 
-			#[no_mangle]
 			#[doc(hidden)]
-			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int {
+			#[unsafe(no_mangle)]
+			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 				use crate::{gmod13_open, gmod13_close};
 				0
 			}
@@ -84,9 +84,9 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 		quote! {
 			#tokens
 
-			#[no_mangle]
 			#[doc(hidden)]
-			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int {
+			#[unsafe(no_mangle)]
+			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 				use crate::{gmod13_open, gmod13_close};
 				::flatgrass::lua::Lua::init(state, |lua| {
 					let res = #ident::to_lua(state);
@@ -132,7 +132,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			#vis mod #ident {
 				use super::*;
 
-				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int #where_clause {
+				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
 					0
 				}
 			}
@@ -179,7 +179,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			#vis mod #ident {
 				use super::*;
 
-				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::c_int #where_clause {
+				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
 					match ::flatgrass::lua::Lua::init(state, |lua| {
 						let (mut arg, mut upv) = (1, 1);
 						#body

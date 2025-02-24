@@ -1,6 +1,5 @@
 use super::*;
 use crate::ffi;
-use libc::strcmp;
 use std::ffi::CStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -18,7 +17,7 @@ impl<T> BadArgumentError<T> {
 				None
 			} else {
 				ffi::lua_getinfo(lua.state(), c"n".as_ptr(), &mut debug);
-				if strcmp(debug.namewhat, c"method".as_ptr()) == 0 {
+				if ffi::libc::strcmp(debug.namewhat, c"method".as_ptr()) == 0 {
 					arg -= 1;
 				}
 

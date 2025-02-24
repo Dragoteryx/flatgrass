@@ -5,10 +5,8 @@
 #[cfg(feature = "macros")]
 pub use flatgrass_macros::{entry, exit, function};
 
-/// FFI bindings to the Lua C API, as well as type definitions.
-///
-/// For more information, see [the Lua 5.1 manual](https://www.lua.org/manual/5.1/manual.html#3).
-pub mod ffi;
+#[doc(inline)]
+pub use flatgrass_ffi as ffi;
 
 /// Safe abstraction over the Lua C API, you should probably use this.
 pub mod lua;

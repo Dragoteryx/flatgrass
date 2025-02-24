@@ -45,7 +45,7 @@ impl LuaStack {
 
 	unsafe fn pop_reference_unchecked(&self) -> Reference {
 		Reference {
-			id: ffi::luaL_ref(self.state(), ffi::LUA_REGISTRYINDEX),
+			id: unsafe { ffi::luaL_ref(self.state(), ffi::LUA_REGISTRYINDEX) },
 			not_ref_unwind_safe: PhantomData,
 			not_unwind_safe: PhantomData,
 			not_send_sync: PhantomData,
@@ -53,8 +53,10 @@ impl LuaStack {
 	}
 
 	unsafe fn get_reference_unchecked(&self, idx: i32) -> Reference {
-		self.push_index_unchecked(idx);
-		self.pop_reference_unchecked()
+		unsafe {
+			self.push_index_unchecked(idx);
+			self.pop_reference_unchecked()
+		}
 	}
 }
 

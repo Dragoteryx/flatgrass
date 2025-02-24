@@ -49,7 +49,7 @@ impl Lua {
 			let old_state = static_state.get();
 			static_state.set(state);
 			let lua = Self {
-				state: NonNull::new_unchecked(state),
+				state: unsafe { NonNull::new_unchecked(state) },
 			};
 
 			match catch_unwind(AssertUnwindSafe(|| func(&lua))) {
@@ -112,7 +112,7 @@ impl Lua {
 
 	/// Checks if two Lua values are equal according to Lua semantics.
 	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Option<bool> {
-		static EQUALS: ffi::lua_CFunction = ffi::raw_function!(|state| {
+		static EQUALS: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_equal(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
 			1
@@ -136,7 +136,7 @@ impl Lua {
 
 	/// Checks if the first Lua value is less than the second Lua value according to Lua semantics.
 	pub fn less_than<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Option<bool> {
-		static LESS_THAN: ffi::lua_CFunction = ffi::raw_function!(|state| {
+		static LESS_THAN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_lessthan(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
 			1

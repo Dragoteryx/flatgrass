@@ -27,7 +27,7 @@ impl LuaStack {
 
 	pub unsafe fn pop_table_unchecked(&self) -> Table {
 		Table {
-			reference: Rc::new(self.pop_reference_unchecked()),
+			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
 		}
 	}
 
@@ -41,7 +41,7 @@ impl LuaStack {
 
 	pub unsafe fn get_table_unchecked(&self, idx: i32) -> Table {
 		Table {
-			reference: Rc::new(self.get_reference_unchecked(idx)),
+			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
 		}
 	}
 }
@@ -64,10 +64,10 @@ impl Table {
 	}
 
 	pub unsafe fn registry() -> Self {
-		Lua::get(|lua| lua.stack().get_table_unchecked(ffi::LUA_REGISTRYINDEX))
+		Lua::get(|lua| unsafe { lua.stack().get_table_unchecked(ffi::LUA_REGISTRYINDEX) })
 	}
 
-	pub fn to_ptr(&self) -> *const ffi::c_void {
+	pub fn to_ptr(&self) -> *const ffi::libc::c_void {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_table(self);
@@ -128,7 +128,7 @@ impl Table {
 	}
 
 	pub fn get<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
-		static GET: ffi::lua_CFunction = ffi::raw_function!(|state| {
+		static GET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			ffi::lua_gettable(state, 1);
 			1
 		});
@@ -157,7 +157,7 @@ impl Table {
 	}
 
 	pub fn set<K: ToLua, V: ToLua>(&self, key: K, value: V) -> Result<(), LuaValue> {
-		const SET: ffi::lua_CFunction = ffi::raw_function!(|state| {
+		const SET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			ffi::lua_settable(state, 1);
 			0
 		});
@@ -255,7 +255,7 @@ impl Table {
 
 	pub fn recurse<T>(&self, func: impl FnOnce(usize) -> T) -> T {
 		thread_local! {
-			static VISITED: RefCell<HashMap<*const ffi::c_void, usize>> = RefCell::default();
+			static VISITED: RefCell<HashMap<*const ffi::libc::c_void, usize>> = RefCell::default();
 		}
 
 		VISITED.with(|visited| {

@@ -26,7 +26,7 @@ impl LuaStack {
 
 	pub unsafe fn pop_function_unchecked(&self) -> Function {
 		Function {
-			reference: Rc::new(self.pop_reference_unchecked()),
+			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
 		}
 	}
 
@@ -40,7 +40,7 @@ impl LuaStack {
 
 	pub unsafe fn get_function_unchecked(&self, idx: i32) -> Function {
 		Function {
-			reference: Rc::new(self.get_reference_unchecked(idx)),
+			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
 		}
 	}
 }
@@ -62,7 +62,7 @@ impl Function {
 		})
 	}
 
-	pub fn to_ptr(&self) -> *const ffi::c_void {
+	pub fn to_ptr(&self) -> *const ffi::libc::c_void {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_function(self);

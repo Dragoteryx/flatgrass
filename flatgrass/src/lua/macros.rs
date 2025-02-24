@@ -57,7 +57,7 @@ macro_rules! table {
 ///
 /// # Examples
 ///
-/// This macro can be used to create a function from a Rust function`.
+/// This macro can be used to create a function from a Rust function.
 /// ```
 ///
 #[doc(hidden)]
@@ -66,7 +66,7 @@ macro_rules! func {
 	($func:ident) => {
 		$crate::lua::value::Function::new($func::to_lua)
 	};
-	($func:ident :: <$($ty:ty),*> $(,)?) => {
+	($func:ident :: <$($ty:ty),* $(,)?>) => {
 		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>)
 	};
 }

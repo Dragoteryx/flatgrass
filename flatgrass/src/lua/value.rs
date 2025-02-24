@@ -9,7 +9,7 @@ pub use reference::*;
 #[cfg(feature = "serde")]
 mod serde;
 
-pub type LightUserdata = *mut crate::ffi::c_void;
+pub type LightUserdata = *mut crate::ffi::libc::c_void;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LuaType {

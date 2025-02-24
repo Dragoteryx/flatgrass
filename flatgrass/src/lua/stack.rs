@@ -110,7 +110,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index is valid.
 	pub unsafe fn get_type_unchecked(&self, idx: i32) -> LuaType {
-		self.get_type(idx).unwrap_unchecked()
+		unsafe { self.get_type(idx).unwrap_unchecked() }
 	}
 
 	/// Returns the type of the value at the `idx` index, or `None` if the index isn't valid.
@@ -136,7 +136,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index is valid.
 	pub unsafe fn get_value_unchecked(&self, idx: i32) -> LuaValue {
-		self.get_value(idx).unwrap_unchecked()
+		unsafe { self.get_value(idx).unwrap_unchecked() }
 	}
 
 	/// Returns the boolean at the `idx` index, or `None` if the value at that index isn't a boolean.
@@ -154,7 +154,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a boolean.
 	pub unsafe fn get_bool_unchecked(&self, idx: i32) -> bool {
-		ffi::lua_toboolean(self.state(), idx) != 0
+		unsafe { ffi::lua_toboolean(self.state(), idx) != 0 }
 	}
 
 	/// Returns the number at the `idx` index, or `None` if the value at that index isn't a number.
@@ -172,7 +172,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a number.
 	pub unsafe fn get_number_unchecked(&self, idx: i32) -> f64 {
-		ffi::lua_tonumber(self.state(), idx)
+		unsafe { ffi::lua_tonumber(self.state(), idx) }
 	}
 
 	// Returns the light userdata at the `idx` index, or `None` if the value at that index isn't a light userdata.
@@ -190,7 +190,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a light userdata.
 	pub unsafe fn get_light_userdata_unchecked(&self, idx: i32) -> LightUserdata {
-		ffi::lua_touserdata(self.state(), idx)
+		unsafe { ffi::lua_touserdata(self.state(), idx) }
 	}
 
 	/// Pops the value at the top of the stack, returning it, or `None` if the stack is empty.
@@ -219,7 +219,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the stack is not empty.
 	pub unsafe fn pop_value_unchecked(&self) -> LuaValue {
-		self.pop_value().unwrap_unchecked()
+		unsafe {  self.pop_value().unwrap_unchecked() }
 	}
 
 	/// Pops the boolean at the top of the stack, returning it, or `None` if the stack is empty.
@@ -237,7 +237,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the stack is not empty.
 	pub unsafe fn pop_bool_unchecked(&self) -> bool {
-		let bl = self.get_bool_unchecked(-1);
+		let bl = unsafe { self.get_bool_unchecked(-1) };
 		self.pop_n(1);
 		bl
 	}
@@ -257,7 +257,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the value at the top of the stack is a number.
 	pub unsafe fn pop_number_unchecked(&self) -> f64 {
-		let num = self.get_number_unchecked(-1);
+		let num = unsafe { self.get_number_unchecked(-1) };
 		self.pop_n(1);
 		num
 	}
@@ -277,7 +277,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the value at the top of the stack is a light userdata.
 	pub unsafe fn pop_light_userdata_unchecked(&self) -> LightUserdata {
-		let ptr = self.get_light_userdata_unchecked(-1);
+		let ptr = unsafe { self.get_light_userdata_unchecked(-1) };
 		self.pop_n(1);
 		ptr
 	}
@@ -457,7 +457,9 @@ impl LuaStack {
 	#[track_caller]
 	pub unsafe fn push_index_unchecked(&self, idx: i32) {
 		if self.check_size(1) {
-			ffi::lua_pushvalue(self.state(), idx);
+			unsafe {
+				ffi::lua_pushvalue(self.state(), idx);
+			}
 		} else {
 			stack_overflow!();
 		}

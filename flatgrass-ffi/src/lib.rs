@@ -1,11 +1,13 @@
 #![forbid(improper_ctypes_definitions)]
 #![allow(non_camel_case_types)]
 
-#[doc(no_inline)]
-pub use libc::{c_char, c_double, c_int, c_void, ptrdiff_t, size_t};
+//! FFI bindings to the Lua C API, as well as type definitions.
+//!
+//! For more information, see [the Lua 5.1 manual](https://www.lua.org/manual/5.1/manual.html#3).
 
-#[doc(inline)]
-pub use crate::{import_lua, raw_function};
+pub use libc;
+use libc::*;
+
 mod macros;
 
 mod shared;

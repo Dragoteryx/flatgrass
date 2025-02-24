@@ -1,0 +1,15 @@
+[package]
+name = "flatgrass-ffi"
+version = "0.1.0"
+edition = "2024"
+readme = "README.md"
+
+[lib]
+doctest = false
+
+[dependencies]
+libc = "0.2"
+libloading = "0.8"
+
+[package.metadata.docs.rs]
+all-features = true

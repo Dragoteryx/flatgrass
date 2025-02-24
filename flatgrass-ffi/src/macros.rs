@@ -7,29 +7,27 @@
 ///     1
 /// });
 /// ```
-#[doc(hidden)]
 #[macro_export]
 macro_rules! raw_function {
 	(|_| $body:expr) => {{
-		unsafe extern "C-unwind" fn func(_: *mut $crate::ffi::lua_State) -> $crate::ffi::c_int {
+		unsafe extern "C-unwind" fn func(_: *mut $crate::lua_State) -> $crate::libc::c_int {
 			$body
 		}
 
-		func as $crate::ffi::lua_CFunction
+		func as $crate::lua_CFunction
 	}};
 	(|$state:ident| $body:expr) => {{
 		unsafe extern "C-unwind" fn func(
-			$state: *mut $crate::ffi::lua_State,
-		) -> $crate::ffi::c_int {
+			$state: *mut $crate::lua_State,
+		) -> $crate::libc::c_int {
 			$body
 		}
 
-		func as $crate::ffi::lua_CFunction
+		func as $crate::lua_CFunction
 	}};
 }
 
 /// Used to import functions & macros from the Lua C API.
-#[doc(hidden)]
 #[macro_export]
 macro_rules! import_lua {
 	() => {};
@@ -45,10 +43,12 @@ macro_rules! import_lua {
 			use ::std::sync::LazyLock;
 
 			static FUNC: LazyLock<unsafe extern "C-unwind" fn($($argty),*) $(-> $ret)?> = LazyLock::new(|| unsafe {
-				*$crate::ffi::LUA_SHARED.get(stringify!($name).as_bytes()).expect(concat!("could not find '", stringify!($name), "'"))
+				*$crate::LUA_SHARED.get(stringify!($name).as_bytes()).expect(concat!("could not find '", stringify!($name), "'"))
 			});
 
-			FUNC($($arg),*)
+			unsafe {
+				FUNC($($arg),*)
+			}
 		}
 
 		$crate::import_lua! {

@@ -22,11 +22,18 @@ name = "flatgrass"
 version = "0.1.0"
 dependencies = [
  "either",
+ "flatgrass-ffi",
  "flatgrass-macros",
- "libc",
- "libloading",
  "rustc_version",
  "serde",
+]
+
+[[package]]
+name = "flatgrass-ffi"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "libloading",
 ]
 
 [[package]]

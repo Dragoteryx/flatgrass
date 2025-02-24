@@ -12,7 +12,7 @@ pub struct Userdata {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RawUserdata {
-	pub data: *mut ffi::c_void,
+	pub data: *mut ffi::libc::c_void,
 	pub type_id: u8,	
 }
 
@@ -31,7 +31,7 @@ impl LuaStack {
 
 	pub unsafe fn pop_userdata_unchecked(&self) -> Userdata {
 		Userdata {
-			reference: Rc::new(self.pop_reference_unchecked()),
+			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
 		}
 	}
 
@@ -45,7 +45,7 @@ impl LuaStack {
 
 	pub unsafe fn get_userdata_unchecked(&self, idx: i32) -> Userdata {
 		Userdata {
-			reference: Rc::new(self.get_reference_unchecked(idx)),
+			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
 		}
 	}
 }

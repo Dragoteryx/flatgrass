@@ -174,7 +174,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_getglobal`](https://www.lua.org/manual/5.1/manual.html#lua_getglobal)
 	pub fn lua_getglobal(state: *mut lua_State, name: *const c_char) {
-		lua_getfield(state, LUA_GLOBALSINDEX, name);
+		unsafe {
+			lua_getfield(state, LUA_GLOBALSINDEX, name);
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_getmetatable`](https://www.lua.org/manual/5.1/manual.html#lua_getmetatable)
@@ -191,7 +193,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_isboolean`](https://www.lua.org/manual/5.1/manual.html#lua_isboolean)
 	pub fn lua_isboolean(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TBOOLEAN) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TBOOLEAN) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_iscfunction`](https://www.lua.org/manual/5.1/manual.html#lua_iscfunction)
@@ -199,27 +203,37 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_function`](https://www.lua.org/manual/5.1/manual.html#lua_function)
 	pub fn lua_isfunction(state: *mut lua_State, idx: c_int) -> c_int	{
-		(lua_type(state, idx) == LUA_TFUNCTION) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TFUNCTION) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_islightuserdata`](https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata)
 	pub fn lua_islightuserdata(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TLIGHTUSERDATA) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TLIGHTUSERDATA) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isnil`](https://www.lua.org/manual/5.1/manual.html#lua_isnil)
 	pub fn lua_isnil(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TNIL) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TNIL) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isnone`](https://www.lua.org/manual/5.1/manual.html#lua_isnone)
 	pub fn lua_isnone(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TNONE) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TNONE) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isnoneornil`](https://www.lua.org/manual/5.1/manual.html#lua_isnoneornil)
 	pub fn lua_isnoneornil(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) <= 0) as _
+		unsafe {
+			(lua_type(state, idx) <= 0) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isnumber`](https://www.lua.org/manual/5.1/manual.html#lua_isnumber)
@@ -230,12 +244,16 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_istable`](https://www.lua.org/manual/5.1/manual.html#lua_istable)
 	pub fn lua_istable(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TTABLE) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TTABLE) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isthread`](https://www.lua.org/manual/5.1/manual.html#lua_isthread)
 	pub fn lua_isthread(state: *mut lua_State, idx: c_int) -> c_int {
-		(lua_type(state, idx) == LUA_TTHREAD) as _
+		unsafe {
+			(lua_type(state, idx) == LUA_TTHREAD) as _
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_isuserdata`](https://www.lua.org/manual/5.1/manual.html#lua_isuserdata)
@@ -252,7 +270,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_newtable`](https://www.lua.org/manual/5.1/manual.html#lua_newtable)
 	pub fn lua_newtable(state: *mut lua_State) {
-		lua_createtable(state, 0, 0);
+		unsafe {
+			lua_createtable(state, 0, 0);
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_newthread`](https://www.lua.org/manual/5.1/manual.html#lua_newthread)
@@ -272,7 +292,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_pop`](https://www.lua.org/manual/5.1/manual.html#lua_pop)
 	pub fn lua_pop(state: *mut lua_State, n: c_int) {
-		lua_settop(state, -n-1);
+		unsafe {
+			lua_settop(state, -n-1);
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_pushboolean`](https://www.lua.org/manual/5.1/manual.html#lua_pushboolean)
@@ -283,7 +305,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_pushcfunction`](https://www.lua.org/manual/5.1/manual.html#lua_pushcfunction)
 	pub fn lua_pushcfunction(state: *mut lua_State, func: lua_CFunction) {
-		lua_pushcclosure(state, func, 0)
+		unsafe {
+			lua_pushcclosure(state, func, 0)
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_pushinteger`](https://www.lua.org/manual/5.1/manual.html#lua_pushinteger)
@@ -327,8 +351,10 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_register`](https://www.lua.org/manual/5.1/manual.html#lua_register)
 	pub fn lua_register(state: *mut lua_State, name: *const c_char, func: lua_CFunction) {
-		lua_pushcfunction(state, func);
-		lua_setglobal(state, name);
+		unsafe {
+			lua_pushcfunction(state, func);
+			lua_setglobal(state, name);
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_remove`](https://www.lua.org/manual/5.1/manual.html#lua_remove)
@@ -342,7 +368,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_resume`](https://www.lua.org/manual/5.1/manual.html#lua_resume)
 	pub fn lua_resume(state: *mut lua_State, nargs: c_int) -> c_int {
-		lua_resume_real(state, nargs)
+		unsafe {
+			lua_resume_real(state, nargs)
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_setallocf`](https://www.lua.org/manual/5.1/manual.html#lua_setallocf)
@@ -356,7 +384,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_setglobal`](https://www.lua.org/manual/5.1/manual.html#lua_setglobal)
 	pub fn lua_setglobal(state: *mut lua_State, name: *const c_char) {
-		lua_setfield(state, LUA_GLOBALSINDEX, name);
+		unsafe {
+			lua_setfield(state, LUA_GLOBALSINDEX, name);
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_setmetatable`](https://www.lua.org/manual/5.1/manual.html#lua_setmetatable)
@@ -391,7 +421,9 @@ import_lua! {
 
 	/// See the Lua 5.1 manual: [`lua_tostring`](https://www.lua.org/manual/5.1/manual.html#lua_tostring)
 	pub fn lua_tostring(state: *mut lua_State, idx: c_int) -> *const c_char	{
-		lua_tolstring(state, idx, std::ptr::null_mut())
+		unsafe {
+			lua_tolstring(state, idx, std::ptr::null_mut())
+		}
 	}
 
 	/// See the Lua 5.1 manual: [`lua_tothread`](https://www.lua.org/manual/5.1/manual.html#lua_tothread)
