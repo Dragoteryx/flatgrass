@@ -13,7 +13,7 @@ pub struct Userdata {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RawUserdata {
 	pub data: *mut ffi::libc::c_void,
-	pub type_id: u8,	
+	pub type_id: u8,
 }
 
 impl LuaStack {
@@ -106,12 +106,12 @@ impl PartialEq for Userdata {
 impl PartialOrd for Userdata {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Lua::get(|lua| match lua.equals(self, other) {
-			None => None,
-			Some(true) => Some(Ordering::Equal),
-			Some(false) => match lua.less_than(self, other) {
-				Some(false) => Some(Ordering::Greater),
-				Some(true) => Some(Ordering::Less),
-				None => None,
+			Err(_) => None,
+			Ok(true) => Some(Ordering::Equal),
+			Ok(false) => match lua.less_than(self, other) {
+				Ok(false) => Some(Ordering::Greater),
+				Ok(true) => Some(Ordering::Less),
+				Err(_) => None,
 			},
 		})
 	}

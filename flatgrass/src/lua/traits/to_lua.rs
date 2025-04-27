@@ -6,20 +6,10 @@ use std::marker::{PhantomData, PhantomPinned};
 use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
+use super::ToLua;
 
 #[cfg(feature = "either")]
 use either::Either;
-
-pub trait ToLua {
-	fn to_lua_by_ref(&self) -> LuaValue;
-
-	fn to_lua(self) -> LuaValue
-	where
-		Self: Sized,
-	{
-		self.to_lua_by_ref()
-	}
-}
 
 /// Implements the ToLua trait for number types.
 macro_rules! impl_tolua_num {

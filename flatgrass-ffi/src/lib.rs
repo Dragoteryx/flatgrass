@@ -1,10 +1,9 @@
 #![forbid(improper_ctypes_definitions)]
 #![allow(non_camel_case_types)]
 
-//! FFI bindings to the Lua C API, as well as type definitions.
-//!
-//! For more information, see [the Lua 5.1 manual](https://www.lua.org/manual/5.1/manual.html#3).
+//! Flatgrass FFI docs here
 
+#[doc(no_inline)]
 pub use libc;
 use libc::*;
 

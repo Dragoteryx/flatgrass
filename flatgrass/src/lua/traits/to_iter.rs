@@ -1,10 +1,4 @@
-use super::{LuaValue, ToLua};
-
-pub trait ToLuaIter {
-	type LuaIter: IntoIterator<Item: ToLua>;
-
-	fn to_lua_iter(self) -> Self::LuaIter;
-}
+use super::{LuaValue, ToLua, ToLuaIter};
 
 impl<T: ToLua> ToLuaIter for T {
 	type LuaIter = [T; 1];

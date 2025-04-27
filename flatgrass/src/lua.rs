@@ -1,8 +1,8 @@
 use crate::ffi;
 use std::cell::Cell;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
-use std::ptr::{null_mut, NonNull};
+use std::ptr::{NonNull, null_mut};
 
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
@@ -24,6 +24,7 @@ pub mod traits;
 use traits::ToLua;
 
 pub mod value;
+use value::LuaValue;
 
 thread_local! {
 	static LUA_STATE: Cell<*mut ffi::lua_State> = const {
@@ -89,7 +90,7 @@ impl Lua {
 		unsafe { &*(self as *const Self).cast() }
 	}
 
-	/// Forces a garbage collection step.
+	/// Forces garbage collection.
 	pub fn collect_gc(&self) {
 		unsafe {
 			ffi::lua_gc(self.state(), ffi::LUA_GCCOLLECT, 0);
@@ -110,8 +111,8 @@ impl Lua {
 		}
 	}
 
-	/// Checks if two Lua values are equal according to Lua semantics.
-	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Option<bool> {
+	/// Checks if two values are equal according to Lua semantics.
+	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, LuaValue> {
 		static EQUALS: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_equal(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
@@ -125,17 +126,14 @@ impl Lua {
 
 		unsafe {
 			match ffi::lua_pcall(self.state(), 2, 1, 0) {
-				0 => Some(stack.pop_bool_unchecked()),
-				_ => {
-					stack.pop_n(1);
-					None
-				}
+				0 => Ok(stack.pop_bool_unchecked()),
+				_ => Err(stack.pop_value_unchecked()),
 			}
 		}
 	}
 
-	/// Checks if the first Lua value is less than the second Lua value according to Lua semantics.
-	pub fn less_than<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Option<bool> {
+	/// Checks if the first value is less than the second value according to Lua semantics.
+	pub fn less_than<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, LuaValue> {
 		static LESS_THAN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_lessthan(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
@@ -149,18 +147,15 @@ impl Lua {
 
 		unsafe {
 			match ffi::lua_pcall(self.state(), 2, 1, 0) {
-				0 => Some(stack.pop_bool_unchecked()),
-				_ => {
-					stack.pop_n(1);
-					None
-				}
+				0 => Ok(stack.pop_bool_unchecked()),
+				_ => Err(stack.pop_value_unchecked()),
 			}
 		}
 	}
 
 	#[doc(hidden)]
-	pub fn entry(&self) {}
+	pub fn __fg_entry(&self) {}
 
 	#[doc(hidden)]
-	pub fn exit(&self) {}
+	pub fn __fg_exit(&self) {}
 }

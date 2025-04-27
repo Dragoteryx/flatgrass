@@ -1,6 +1,6 @@
+use super::Lua;
 use super::traits::{ToLua, ToLuaIter};
 use super::value::{LightUserdata, LuaType, LuaValue};
-use super::Lua;
 use crate::ffi;
 use std::ffi::CStr;
 use std::hint::unreachable_unchecked;
@@ -219,7 +219,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the stack is not empty.
 	pub unsafe fn pop_value_unchecked(&self) -> LuaValue {
-		unsafe {  self.pop_value().unwrap_unchecked() }
+		unsafe { self.pop_value().unwrap_unchecked() }
 	}
 
 	/// Pops the boolean at the top of the stack, returning it, or `None` if the stack is empty.

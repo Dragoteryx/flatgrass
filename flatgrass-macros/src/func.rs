@@ -42,7 +42,7 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 				use crate::{gmod13_open, gmod13_close};
 				::flatgrass::lua::Lua::init(state, |lua| {
-					lua.entry();
+					lua.__fg_entry();
 					#ident::to_lua(state)
 				})
 			}
@@ -90,7 +90,7 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 				use crate::{gmod13_open, gmod13_close};
 				::flatgrass::lua::Lua::init(state, |lua| {
 					let res = #ident::to_lua(state);
-					lua.exit();
+					lua.__fg_exit();
 					res
 				})
 			}

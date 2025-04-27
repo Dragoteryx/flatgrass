@@ -1,8 +1,8 @@
 use super::*;
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
 
@@ -113,7 +113,7 @@ impl Table {
 	}
 
 	pub fn raw_push<V: ToLua>(&self, value: V) {
-		self.raw_set(self.len() + 1, value);
+		self.raw_set(self.len().unwrap_or(0) + 1, value);
 	}
 
 	pub fn raw_remove<K: ToLua>(&self, key: K) -> LuaValue {
@@ -124,7 +124,7 @@ impl Table {
 	}
 
 	pub fn raw_pop(&self) -> LuaValue {
-		self.raw_remove(self.len())
+		self.raw_remove(self.len().unwrap_or(0))
 	}
 
 	pub fn get<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
@@ -157,7 +157,7 @@ impl Table {
 	}
 
 	pub fn set<K: ToLua, V: ToLua>(&self, key: K, value: V) -> Result<(), LuaValue> {
-		const SET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
+		static SET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			ffi::lua_settable(state, 1);
 			0
 		});
@@ -183,7 +183,7 @@ impl Table {
 	}
 
 	pub fn push<V: ToLua>(&self, value: V) -> Result<(), LuaValue> {
-		self.set(self.len() + 1, value)
+		self.set(self.len().unwrap_or(0) + 1, value)
 	}
 
 	pub fn remove<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
@@ -193,16 +193,24 @@ impl Table {
 	}
 
 	pub fn pop(&self) -> Result<LuaValue, LuaValue> {
-		self.remove(self.len())
+		self.remove(self.len().unwrap_or(0))
 	}
 
-	pub fn len(&self) -> usize {
+	pub fn len(&self) -> Result<usize, LuaValue> {
+		static LEN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
+			let len = ffi::lua_objlen(state, 1);
+			ffi::lua_pushnumber(state, len as f64);
+			1
+		});
+
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
+			stack.push_c_function(LEN);
 			stack.push_table(self);
-			let len = ffi::lua_objlen(lua.state(), -1);
-			stack.pop_n(1);
-			len
+			match ffi::lua_pcall(lua.state(), 1, 1, 0) {
+				0 => Ok(stack.pop_number_unchecked() as usize),
+				_ => Err(stack.pop_value_unchecked()),
+			}
 		})
 	}
 
@@ -325,7 +333,10 @@ impl Debug for Table {
 		write!(f, "Table[{:?}] ", self.to_ptr())?;
 		self.recurse(|depth| match (depth > 0, self.is_sequential()) {
 			(false, false) => f.debug_map().entries(self.pairs()).finish(),
-			(false, true) => f.debug_list().entries(self.ipairs().map(|(_, v)| v)).finish(),
+			(false, true) => f
+				.debug_list()
+				.entries(self.ipairs().map(|(_, v)| v))
+				.finish(),
 			(true, false) => write!(f, "{{..}}"),
 			(true, true) => write!(f, "[..]"),
 		})
@@ -341,12 +352,12 @@ impl PartialEq for Table {
 impl PartialOrd for Table {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Lua::get(|lua| match lua.equals(self, other) {
-			None => None,
-			Some(true) => Some(Ordering::Equal),
-			Some(false) => match lua.less_than(self, other) {
-				Some(false) => Some(Ordering::Greater),
-				Some(true) => Some(Ordering::Less),
-				None => None,
+			Err(_) => None,
+			Ok(true) => Some(Ordering::Equal),
+			Ok(false) => match lua.less_than(self, other) {
+				Ok(false) => Some(Ordering::Greater),
+				Ok(true) => Some(Ordering::Less),
+				Err(_) => None,
 			},
 		})
 	}

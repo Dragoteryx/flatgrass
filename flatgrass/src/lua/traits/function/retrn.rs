@@ -12,7 +12,7 @@ pub enum Return<T, Y = T> {
 }
 
 #[cfg_attr(docsrs, doc(notable_trait))]
-pub trait LuaFnReturn {
+pub trait LuaFnReturn: Sized {
 	type Values: ToLuaIter;
 	type Yield: ToLuaIter;
 	type Err: ToLua;

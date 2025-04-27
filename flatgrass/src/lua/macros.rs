@@ -1,3 +1,15 @@
+/// Create a new function from the given Rust function.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! func {
+	($func:ident) => {
+		$crate::lua::value::Function::new($func::to_lua)
+	};
+	($func:ident :: <$($ty:ty),* $(,)?>) => {
+		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>)
+	};
+}
+
 /// Create a new table with the given values.
 ///
 /// # Examples
@@ -51,22 +63,4 @@ macro_rules! table {
 		$( table.raw_set($key, $value); )*
 		table
 	}};
-}
-
-/// Create a new function from the given Rust function.
-///
-/// # Examples
-///
-/// This macro can be used to create a function from a Rust function.
-/// ```
-///
-#[doc(hidden)]
-#[macro_export]
-macro_rules! func {
-	($func:ident) => {
-		$crate::lua::value::Function::new($func::to_lua)
-	};
-	($func:ident :: <$($ty:ty),* $(,)?>) => {
-		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>)
-	};
 }

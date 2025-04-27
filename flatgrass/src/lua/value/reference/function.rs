@@ -72,6 +72,16 @@ impl Function {
 		})
 	}
 
+	pub fn to_c_function(&self) -> Option<ffi::lua_CFunction> {
+		Lua::get(|lua| unsafe {
+			let stack = lua.stack();
+			stack.push_function(self);
+			let func = ffi::lua_tocfunction(lua.state(), -1);
+			stack.pop_n(1);
+			func
+		})
+	}
+
 	pub fn call<T: ToLuaIter>(&self, args: T) -> Result<VecDeque<LuaValue>, LuaValue> {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();

@@ -1,7 +1,7 @@
 use super::{FromLua, Lua, ToLua};
 use crate::ffi::lua_upvalueindex;
-use crate::lua::errors::{BadArgumentError, LuaError};
 use crate::lua::LuaStack;
+use crate::lua::errors::{BadArgumentError, LuaError};
 use std::convert::Infallible;
 use std::mem::replace;
 

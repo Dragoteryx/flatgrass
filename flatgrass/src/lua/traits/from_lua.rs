@@ -4,16 +4,10 @@ use std::convert::Infallible;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
+use super::FromLua;
 
-pub trait FromLua: Sized {
-	type Err;
-
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err>;
-
-	fn no_value() -> Result<Self, Self::Err> {
-		Self::from_lua(LuaValue::Nil)
-	}
-}
+#[cfg(feature = "either")]
+use either::Either;
 
 impl<T: FromLua> FromLua for Box<T> {
 	type Err = T::Err;
@@ -66,6 +60,31 @@ impl<T: FromLua> FromLua for Option<T> {
 		match T::no_value() {
 			Ok(ok) => Ok(Some(ok)),
 			Err(_) => Ok(None),
+		}
+	}
+}
+
+#[cfg(feature = "either")]
+impl<L: FromLua, R: FromLua> FromLua for Either<L, R> {
+	type Err = R::Err;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+		match L::from_lua(value.clone()) {
+			Ok(ok) => Ok(Self::Left(ok)),
+			Err(_) => match R::from_lua(value) {
+				Ok(ok) => Ok(Self::Right(ok)),
+				Err(err) => Err(err),
+			},
+		}
+	}
+
+	fn no_value() -> Result<Self, Self::Err> {
+		match L::no_value() {
+			Ok(ok) => Ok(Self::Left(ok)),
+			Err(_) => match R::no_value() {
+				Ok(ok) => Ok(Self::Right(ok)),
+				Err(err) => Err(err),
+			},
 		}
 	}
 }
