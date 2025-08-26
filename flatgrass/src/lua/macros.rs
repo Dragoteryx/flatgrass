@@ -55,7 +55,7 @@ macro_rules! table {
 	}};
 	($($key:ident : $value:expr),* $(,)?) => {{
 		let table = $crate::lua::value::Table::new();
-		$( table.raw_set(::std::stringify!($key), $value); )*
+		$( table.raw_set(::core::stringify!($key), $value); )*
 		table
 	}};
 	($([$key:expr] : $value:expr),* $(,)?) => {{

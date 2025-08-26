@@ -2,8 +2,8 @@ use crate::lua::Lua;
 use crate::lua::value::LuaValue;
 
 mod from_lua;
-mod to_lua;
 mod to_iter;
+mod to_lua;
 
 pub mod function;
 

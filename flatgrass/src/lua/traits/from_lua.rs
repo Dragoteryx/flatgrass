@@ -1,10 +1,10 @@
+use super::FromLua;
 use crate::lua::errors::FromLuaError;
 use crate::lua::value::{LightUserdata, LuaString, LuaType, LuaValue};
 use std::convert::Infallible;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
-use super::FromLua;
 
 #[cfg(feature = "either")]
 use either::Either;

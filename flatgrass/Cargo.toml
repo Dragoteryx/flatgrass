@@ -29,5 +29,8 @@ optional = true
 [dependencies.flatgrass-ffi]
 path = "../flatgrass-ffi"
 
+[build-dependencies]
+rustc_version = "0.4"
+
 [package.metadata.docs.rs]
 all-features = true

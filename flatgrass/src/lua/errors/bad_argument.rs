@@ -13,10 +13,10 @@ impl<T> BadArgumentError<T> {
 	pub fn new(mut arg: i32, source: T) -> Self {
 		Lua::get(|lua| unsafe {
 			let mut debug = ffi::lua_Debug::default();
-			let name = if ffi::lua_getstack(lua.state(), 0, &mut debug) == 0 {
+			let name = if ffi::lua_getstack(lua.to_ptr(), 0, &mut debug) == 0 {
 				None
 			} else {
-				ffi::lua_getinfo(lua.state(), c"n".as_ptr(), &mut debug);
+				ffi::lua_getinfo(lua.to_ptr(), c"n".as_ptr(), &mut debug);
 				if ffi::libc::strcmp(debug.namewhat, c"method".as_ptr()) == 0 {
 					arg -= 1;
 				}

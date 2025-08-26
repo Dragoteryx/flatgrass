@@ -1,3 +1,4 @@
+use super::ToLua;
 use crate::lua::value::{LightUserdata, LuaString, LuaValue, Table};
 use std::collections::*;
 use std::convert::Infallible;
@@ -6,7 +7,6 @@ use std::marker::{PhantomData, PhantomPinned};
 use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
-use super::ToLua;
 
 #[cfg(feature = "either")]
 use either::Either;

@@ -1,7 +1,7 @@
 use super::{FromLua, LuaType, LuaValue, ToLua, ToLuaIter};
 use crate::ffi;
 use crate::lua::errors::FromLuaError;
-use crate::lua::{Lua, LuaStack};
+use crate::lua::{Lua, Stack};
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 
@@ -31,12 +31,12 @@ struct Reference {
 	id: i32,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	#[track_caller]
 	fn push_reference(&self, reference: &Reference) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_rawgeti(self.state(), ffi::LUA_REGISTRYINDEX, reference.id);
+				ffi::lua_rawgeti(self.to_ptr(), ffi::LUA_REGISTRYINDEX, reference.id);
 			}
 		} else {
 			stack_overflow!();
@@ -45,7 +45,7 @@ impl LuaStack {
 
 	unsafe fn pop_reference_unchecked(&self) -> Reference {
 		Reference {
-			id: unsafe { ffi::luaL_ref(self.state(), ffi::LUA_REGISTRYINDEX) },
+			id: unsafe { ffi::luaL_ref(self.to_ptr(), ffi::LUA_REGISTRYINDEX) },
 			not_ref_unwind_safe: PhantomData,
 			not_unwind_safe: PhantomData,
 			not_send_sync: PhantomData,
@@ -74,7 +74,7 @@ impl Drop for Reference {
 	fn drop(&mut self) {
 		Lua::try_get(|lua| unsafe {
 			if let Some(lua) = lua {
-				ffi::luaL_unref(lua.state(), ffi::LUA_REGISTRYINDEX, self.id);
+				ffi::luaL_unref(lua.to_ptr(), ffi::LUA_REGISTRYINDEX, self.id);
 			}
 		});
 	}

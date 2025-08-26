@@ -16,7 +16,7 @@ pub struct RawUserdata {
 	pub type_id: u8,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	pub fn push_userdata(&self, udata: &Userdata) {
 		self.push_reference(&udata.reference);
 	}
@@ -55,7 +55,7 @@ impl Userdata {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_userdata(self);
-			let ptr = ffi::lua_touserdata(lua.state(), -1);
+			let ptr = ffi::lua_touserdata(lua.to_ptr(), -1);
 			stack.pop_n(1);
 			ptr.cast()
 		})

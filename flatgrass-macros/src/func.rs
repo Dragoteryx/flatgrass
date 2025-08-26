@@ -141,11 +141,11 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		let args = func.sig.inputs.iter().map(|input| {
 			quote_spanned! { input.span() =>
 				match ::flatgrass::lua::traits::function::LuaFnParam::lua_fn_param(lua, &mut arg, &mut upv) {
-					::std::result::Result::Ok(value) => value,
-					::std::result::Result::Err(err) => {
+					::core::result::Result::Ok(value) => value,
+					::core::result::Result::Err(err) => {
 						lua.stack().clear();
 						lua.stack().push_any(err);
-						return ::std::option::Option::None;
+						return ::core::option::Option::None;
 					}
 				}
 			}
@@ -159,14 +159,14 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		} else {
 			quote_spanned! { ret_span =>
 				match ::flatgrass::lua::traits::function::LuaFnReturn::lua_fn_return(#ident #generics_turbofish (#(#args),*), lua) {
-					::std::result::Result::Ok(::flatgrass::lua::traits::function::Return::Values(values)) =>
-						::std::option::Option::Some(::flatgrass::lua::traits::function::Return::Values(lua.stack().push_many(values))),
-					::std::result::Result::Ok(::flatgrass::lua::traits::function::Return::Yield(values)) =>
-						::std::option::Option::Some(::flatgrass::lua::traits::function::Return::Yield(lua.stack().push_many(values))),
-					::std::result::Result::Err(err) => {
+					::core::result::Result::Ok(::flatgrass::lua::traits::function::Return::Values(values)) =>
+						::core::option::Option::Some(::flatgrass::lua::traits::function::Return::Values(lua.stack().push_many(values))),
+					::core::result::Result::Ok(::flatgrass::lua::traits::function::Return::Yield(values)) =>
+						::core::option::Option::Some(::flatgrass::lua::traits::function::Return::Yield(lua.stack().push_many(values))),
+					::core::result::Result::Err(err) => {
 						lua.stack().clear();
 						lua.stack().push_any(err);
-						::std::option::Option::None
+						::core::option::Option::None
 					}
 				}
 			}
@@ -184,8 +184,8 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 						let (mut arg, mut upv) = (1, 1);
 						#body
 					}) {
-						::std::option::Option::None => ::flatgrass::ffi::lua_error(state),
-						::std::option::Option::Some(ret) => match ret {
+						::core::option::Option::None => ::flatgrass::ffi::lua_error(state),
+						::core::option::Option::Some(ret) => match ret {
 							::flatgrass::lua::traits::function::Return::Yield(i) => ::flatgrass::ffi::lua_yield(state, i),
 							::flatgrass::lua::traits::function::Return::Values(i) => i,
 						}

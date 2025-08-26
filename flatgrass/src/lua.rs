@@ -1,8 +1,11 @@
 use crate::ffi;
-use std::cell::Cell;
+use std::any::{Any, TypeId};
+use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
-use std::ptr::{NonNull, null_mut};
+use std::ptr::null_mut;
 
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
@@ -15,10 +18,8 @@ macro_rules! stack_overflow {
 pub use crate::{func, table};
 mod macros;
 
-mod stack;
-pub use stack::*;
-
-pub mod errors;
+pub mod stack;
+use stack::Stack;
 
 pub mod traits;
 use traits::ToLua;
@@ -26,17 +27,20 @@ use traits::ToLua;
 pub mod value;
 use value::LuaValue;
 
+pub mod errors;
+
 thread_local! {
-	static LUA_STATE: Cell<*mut ffi::lua_State> = const {
-		Cell::new(null_mut())
+	static LUA: Lua = Lua {
+		ptr: Cell::new(null_mut()),
+		states: OnceCell::default(),
 	};
 }
 
 /// Safe abstraction over the Lua C API.
-#[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug)]
 pub struct Lua {
-	state: NonNull<ffi::lua_State>,
+	ptr: Cell<*mut ffi::lua_State>,
+	states: OnceCell<HashMap<TypeId, RefCell<Box<dyn Any>>>>,
 }
 
 impl Lua {
@@ -45,18 +49,13 @@ impl Lua {
 	/// # Safety
 	///
 	/// The Lua state passed as an argument must be valid.
-	pub unsafe fn init<T>(state: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
-		LUA_STATE.with(|static_state| {
-			let old_state = static_state.get();
-			static_state.set(state);
-			let lua = Self {
-				state: unsafe { NonNull::new_unchecked(state) },
-			};
-
-			match catch_unwind(AssertUnwindSafe(|| func(&lua))) {
+	pub unsafe fn init<T>(ptr: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
+		LUA.with(|lua| {
+			let old_ptr = lua.ptr.replace(ptr);
+			match catch_unwind(AssertUnwindSafe(|| func(lua))) {
 				Err(_) => abort(),
 				Ok(res) => {
-					static_state.set(old_state);
+					lua.ptr.set(old_ptr);
 					res
 				}
 			}
@@ -65,9 +64,12 @@ impl Lua {
 
 	/// Tries to get the current Lua state.
 	pub fn try_get<T>(func: impl FnOnce(Option<&Self>) -> T) -> T {
-		LUA_STATE.with(|static_state| {
-			let lua = NonNull::new(static_state.get()).map(|state| Self { state });
-			func(lua.as_ref())
+		LUA.with(|lua| {
+			if lua.ptr.get().is_null() {
+				func(None)
+			} else {
+				func(Some(lua))
+			}
 		})
 	}
 
@@ -81,33 +83,69 @@ impl Lua {
 	}
 
 	/// The associated raw Lua state.
-	pub fn state(&self) -> *mut ffi::lua_State {
-		self.state.as_ptr()
+	pub fn to_ptr(&self) -> *mut ffi::lua_State {
+		self.ptr.get()
 	}
 
 	/// The associated Lua stack.
-	pub fn stack(&self) -> &LuaStack {
-		unsafe { &*(self as *const Self).cast() }
+	pub fn stack(&self) -> Stack<'_> {
+		Stack { lua: self }
+	}
+
+	pub fn init_states(&self, init: impl FnOnce(&mut StateInitializer<'_>)) -> bool {
+		match self.states.get().is_some() {
+			true => false,
+			false => {
+				let mut states = HashMap::new();
+				init(&mut StateInitializer { states: &mut states });
+				let _ = self.states.set(states);
+				true
+			}
+		}
+	}
+
+	pub fn state<T: 'static>(&self) -> Option<State<'_, T>> {
+		self.states.get().and_then(|states| {
+			let type_id = TypeId::of::<T>();
+			states.get(&type_id).and_then(|cell| {
+				let borrow = cell.try_borrow_mut().ok()?;
+				Some(State {
+					inner: RefMut::map(borrow, |value| value.downcast_mut::<T>().unwrap()),
+				})
+			})
+		})
+	}
+
+	pub fn state_ref<T: 'static>(&self) -> Option<StateRef<'_, T>> {
+		self.states.get().and_then(|states| {
+			let type_id = TypeId::of::<T>();
+			states.get(&type_id).and_then(|cell| {
+				let borrow = cell.try_borrow().ok()?;
+				Some(StateRef {
+					inner: Ref::map(borrow, |value| value.downcast_ref::<T>().unwrap()),
+				})
+			})
+		})
 	}
 
 	/// Forces garbage collection.
 	pub fn collect_gc(&self) {
 		unsafe {
-			ffi::lua_gc(self.state(), ffi::LUA_GCCOLLECT, 0);
+			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCCOLLECT, 0);
 		}
 	}
 
 	/// Restarts the garbage collector.
 	pub fn restart_gc(&self) {
 		unsafe {
-			ffi::lua_gc(self.state(), ffi::LUA_GCRESTART, 0);
+			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCRESTART, 0);
 		}
 	}
 
 	/// Stops the garbage collector.
 	pub fn stop_gc(&self) {
 		unsafe {
-			ffi::lua_gc(self.state(), ffi::LUA_GCSTOP, 0);
+			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCSTOP, 0);
 		}
 	}
 
@@ -125,7 +163,7 @@ impl Lua {
 		stack.push_any(b);
 
 		unsafe {
-			match ffi::lua_pcall(self.state(), 2, 1, 0) {
+			match ffi::lua_pcall(self.to_ptr(), 2, 1, 0) {
 				0 => Ok(stack.pop_bool_unchecked()),
 				_ => Err(stack.pop_value_unchecked()),
 			}
@@ -146,7 +184,7 @@ impl Lua {
 		stack.push_any(b);
 
 		unsafe {
-			match ffi::lua_pcall(self.state(), 2, 1, 0) {
+			match ffi::lua_pcall(self.to_ptr(), 2, 1, 0) {
 				0 => Ok(stack.pop_bool_unchecked()),
 				_ => Err(stack.pop_value_unchecked()),
 			}
@@ -158,4 +196,50 @@ impl Lua {
 
 	#[doc(hidden)]
 	pub fn __fg_exit(&self) {}
+}
+
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct StateInitializer<'l> {
+	states: &'l mut HashMap<TypeId, RefCell<Box<dyn Any>>>,
+}
+
+impl StateInitializer<'_> {
+	pub fn init<T: 'static>(&mut self, value: T) {
+		self.states.insert(TypeId::of::<T>(), RefCell::new(Box::new(value)));
+	}
+}
+
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct State<'l, T> {
+	inner: RefMut<'l, T>,
+}
+
+impl<T> Deref for State<'_, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		&self.inner
+	}
+}
+
+impl<T> DerefMut for State<'_, T> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.inner
+	}
+}
+
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct StateRef<'l, T> {
+	inner: Ref<'l, T>,
+}
+
+impl<T> Deref for StateRef<'_, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		&self.inner
+	}
 }

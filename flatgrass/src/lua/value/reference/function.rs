@@ -11,7 +11,7 @@ pub struct Function {
 	reference: Rc<Reference>,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	pub fn push_function(&self, func: &Function) {
 		self.push_reference(&func.reference);
 	}
@@ -66,7 +66,7 @@ impl Function {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_function(self);
-			let ptr = ffi::lua_topointer(lua.state(), -1);
+			let ptr = ffi::lua_topointer(lua.to_ptr(), -1);
 			stack.pop_n(1);
 			ptr
 		})
@@ -76,7 +76,7 @@ impl Function {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_function(self);
-			let func = ffi::lua_tocfunction(lua.state(), -1);
+			let func = ffi::lua_tocfunction(lua.to_ptr(), -1);
 			stack.pop_n(1);
 			func
 		})
@@ -88,7 +88,7 @@ impl Function {
 			let size = stack.size();
 			stack.push_function(self);
 			let n = stack.push_many(args);
-			let res = ffi::lua_pcall(lua.state(), n, ffi::LUA_MULTRET, 0);
+			let res = ffi::lua_pcall(lua.to_ptr(), n, ffi::LUA_MULTRET, 0);
 			if res == 0 {
 				let mut values = VecDeque::new();
 				while stack.size() > size {

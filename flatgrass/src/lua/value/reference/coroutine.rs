@@ -24,7 +24,7 @@ pub struct Coroutine {
 	reference: Rc<Reference>,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	pub fn push_coroutine(&self, func: &Coroutine) {
 		self.push_reference(&func.reference);
 	}
@@ -63,7 +63,7 @@ impl Coroutine {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_coroutine(self);
-			let state = ffi::lua_tothread(lua.state(), -1);
+			let state = ffi::lua_tothread(lua.to_ptr(), -1);
 			stack.pop_n(1);
 			state
 		})
@@ -73,7 +73,7 @@ impl Coroutine {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_coroutine(self);
-			let status = ffi::lua_status(lua.state());
+			let status = ffi::lua_status(lua.to_ptr());
 			stack.pop_n(1);
 			match status {
 				ffi::LUA_YIELD => Status::Suspended,
@@ -88,7 +88,7 @@ impl Coroutine {
 			Lua::init(self.to_ptr(), |lua| {
 				let stack = lua.stack();
 				let n = stack.push_many(args);
-				match ffi::lua_resume(lua.state(), n) {
+				match ffi::lua_resume(lua.to_ptr(), n) {
 					res @ (0 | ffi::LUA_YIELD) => {
 						let mut values = VecDeque::new();
 						while stack.size() > 0 {

@@ -97,7 +97,7 @@ pub const LUA_TUSERDATA: c_int = 7;
 /// See the Lua 5.1 manual: [`lua_type`](https://www.lua.org/manual/5.1/manual.html#lua_type)
 pub const LUA_TTHREAD: c_int = 8;
 
-/// See the Lua 5.1 manual: [`LuaStack Size`](https://www.lua.org/manual/5.1/manual.html#3.2)
+/// See the Lua 5.1 manual: [`Stack Size`](https://www.lua.org/manual/5.1/manual.html#3.2)
 pub const LUA_MINSTACK: c_int = 20;
 
 /// See the Lua 5.1 manual: [`lua_gc`](https://www.lua.org/manual/5.1/manual.html#lua_gc)

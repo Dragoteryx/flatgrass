@@ -1,5 +1,4 @@
-#![cfg_attr(docsrs, feature(doc_notable_trait))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(fg_nightly, feature(doc_auto_cfg))]
 #![warn(clippy::use_self)]
 
 // Re-export the ffi module.
@@ -22,6 +21,6 @@ pub mod prelude {
 	pub use crate::lua::errors::LuaError;
 	pub use crate::lua::traits::{FromLua, ToLua};
 	pub use crate::lua::value::{Function, LuaString, LuaValue, Table, Userdata};
-	pub use crate::lua::{Lua, LuaStack};
+	pub use crate::lua::{Lua, State, StateRef};
 	pub use crate::lua::{func, table};
 }

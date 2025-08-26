@@ -1,6 +1,6 @@
 use super::{FromLua, Lua, ToLua};
 use crate::ffi::lua_upvalueindex;
-use crate::lua::LuaStack;
+use crate::lua::Stack;
 use crate::lua::errors::{BadArgumentError, LuaError};
 use std::convert::Infallible;
 use std::mem::replace;
@@ -9,7 +9,6 @@ use std::mem::replace;
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upvalue<T>(pub T);
 
-#[cfg_attr(docsrs, doc(notable_trait))]
 pub trait LuaFnParam<'l>: Sized {
 	type Err: ToLua;
 
@@ -24,7 +23,7 @@ impl<'l> LuaFnParam<'l> for &'l Lua {
 	}
 }
 
-impl<'l> LuaFnParam<'l> for &'l LuaStack {
+impl<'l> LuaFnParam<'l> for Stack<'l> {
 	type Err = Infallible;
 
 	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {

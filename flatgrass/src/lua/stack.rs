@@ -3,24 +3,22 @@ use super::traits::{ToLua, ToLuaIter};
 use super::value::{LightUserdata, LuaType, LuaValue};
 use crate::ffi;
 use std::ffi::CStr;
-use std::hint::unreachable_unchecked;
-use std::ptr::NonNull;
 
-/// Provides a relatively safe interface to the Lua stack.
+/// Provides a safe interface to the Lua stack.
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LuaStack {
-	state: NonNull<ffi::lua_State>,
+#[derive(Debug, Clone, Copy)]
+pub struct Stack<'l> {
+	pub(super) lua: &'l Lua,
 }
 
 /// An iterator over the values on the stack.
 #[derive(Debug, Clone, Copy)]
-pub struct LuaStackIter<'l> {
-	stack: &'l LuaStack,
+pub struct StackIter<'l> {
+	stack: Stack<'l>,
 	idx: i32,
 }
 
-impl Iterator for LuaStackIter<'_> {
+impl Iterator for StackIter<'_> {
 	type Item = LuaValue;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -37,46 +35,41 @@ impl Iterator for LuaStackIter<'_> {
 	}
 }
 
-impl LuaStack {
+impl<'l> Stack<'l> {
 	/// The raw Lua state associated with this stack.
-	pub fn state(&self) -> *mut ffi::lua_State {
-		self.state.as_ptr()
-	}
-
-	/// The [`Lua`] instance associated with this stack.
-	pub fn lua(&self) -> &Lua {
-		unsafe { &*(self as *const Self).cast() }
+	pub fn to_ptr(&self) -> *mut ffi::lua_State {
+		self.lua.to_ptr()
 	}
 
 	/// Iterate over the values on the stack.
-	pub fn iter(&self) -> LuaStackIter {
-		LuaStackIter {
-			stack: self,
+	pub fn iter(&self) -> StackIter<'l> {
+		StackIter {
+			stack: *self,
 			idx: 1,
 		}
 	}
 
 	/// The current size of the stack.
 	pub fn size(&self) -> i32 {
-		unsafe { ffi::lua_gettop(self.state()) }
+		unsafe { ffi::lua_gettop(self.to_ptr()) }
 	}
 
 	/// Ensures that there are at least `n` free slots on top of the stack.\
 	/// Returns `false` if the stack cannot grow to that size.
 	#[must_use = "trying to push a value on the stack when it is full will cause a panic"]
 	pub fn check_size(&self, n: i32) -> bool {
-		unsafe { ffi::lua_checkstack(self.state(), n.max(0)) != 0 }
+		unsafe { ffi::lua_checkstack(self.to_ptr(), n.max(0)) != 0 }
 	}
 
 	/// Pops `n` values from the stack.
 	pub fn pop_n(&self, n: i32) {
-		unsafe { ffi::lua_pop(self.state(), n.clamp(0, self.size())) }
+		unsafe { ffi::lua_pop(self.to_ptr(), n.clamp(0, self.size())) }
 	}
 
 	/// Clear the stack, removing every element.
 	pub fn clear(&self) {
 		unsafe {
-			ffi::lua_settop(self.state(), 0);
+			ffi::lua_settop(self.to_ptr(), 0);
 		}
 	}
 
@@ -88,7 +81,7 @@ impl LuaStack {
 	/// Returns the type of the value at the `idx` index, or `None` if the index isn't valid.
 	pub fn get_type(&self, idx: i32) -> Option<LuaType> {
 		unsafe {
-			match ffi::lua_type(self.state(), idx) {
+			match ffi::lua_type(self.to_ptr(), idx) {
 				ffi::LUA_TNONE => None,
 				ffi::LUA_TNIL => Some(LuaType::Nil),
 				ffi::LUA_TNUMBER => Some(LuaType::Number),
@@ -99,7 +92,7 @@ impl LuaStack {
 				ffi::LUA_TUSERDATA => Some(LuaType::Userdata),
 				ffi::LUA_TTHREAD => Some(LuaType::Coroutine),
 				ffi::LUA_TLIGHTUSERDATA => Some(LuaType::LightUserdata),
-				_ => unreachable_unchecked(),
+				_ => unreachable!(),
 			}
 		}
 	}
@@ -154,7 +147,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a boolean.
 	pub unsafe fn get_bool_unchecked(&self, idx: i32) -> bool {
-		unsafe { ffi::lua_toboolean(self.state(), idx) != 0 }
+		unsafe { ffi::lua_toboolean(self.to_ptr(), idx) != 0 }
 	}
 
 	/// Returns the number at the `idx` index, or `None` if the value at that index isn't a number.
@@ -172,7 +165,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a number.
 	pub unsafe fn get_number_unchecked(&self, idx: i32) -> f64 {
-		unsafe { ffi::lua_tonumber(self.state(), idx) }
+		unsafe { ffi::lua_tonumber(self.to_ptr(), idx) }
 	}
 
 	// Returns the light userdata at the `idx` index, or `None` if the value at that index isn't a light userdata.
@@ -190,7 +183,7 @@ impl LuaStack {
 	///
 	/// You must ensure that the index contains a light userdata.
 	pub unsafe fn get_light_userdata_unchecked(&self, idx: i32) -> LightUserdata {
-		unsafe { ffi::lua_touserdata(self.state(), idx) }
+		unsafe { ffi::lua_touserdata(self.to_ptr(), idx) }
 	}
 
 	/// Pops the value at the top of the stack, returning it, or `None` if the stack is empty.
@@ -318,7 +311,7 @@ impl LuaStack {
 	pub fn push_nil(&self) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushnil(self.state());
+				ffi::lua_pushnil(self.to_ptr());
 			}
 		} else {
 			stack_overflow!();
@@ -330,7 +323,7 @@ impl LuaStack {
 	pub fn push_bool(&self, bl: bool) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushboolean(self.state(), bl as _);
+				ffi::lua_pushboolean(self.to_ptr(), bl as _);
 			}
 		} else {
 			stack_overflow!();
@@ -342,7 +335,7 @@ impl LuaStack {
 	pub fn push_number(&self, num: f64) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushnumber(self.state(), num);
+				ffi::lua_pushnumber(self.to_ptr(), num);
 			}
 		} else {
 			stack_overflow!();
@@ -354,7 +347,7 @@ impl LuaStack {
 	pub fn push_string(&self, rstr: &str) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushlstring(self.state(), rstr.as_ptr().cast(), rstr.len());
+				ffi::lua_pushlstring(self.to_ptr(), rstr.as_ptr().cast(), rstr.len());
 			}
 		} else {
 			stack_overflow!();
@@ -366,7 +359,7 @@ impl LuaStack {
 	pub fn push_c_string(&self, cstr: &CStr) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushstring(self.state(), cstr.as_ptr());
+				ffi::lua_pushstring(self.to_ptr(), cstr.as_ptr());
 			}
 		} else {
 			stack_overflow!();
@@ -378,7 +371,7 @@ impl LuaStack {
 	pub fn push_location(&self, lvl: i32) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::luaL_where(self.state(), lvl.max(0));
+				ffi::luaL_where(self.to_ptr(), lvl.max(0));
 			}
 		} else {
 			stack_overflow!();
@@ -390,7 +383,7 @@ impl LuaStack {
 	pub fn push_new_table(&self) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_newtable(self.state());
+				ffi::lua_newtable(self.to_ptr());
 			}
 		} else {
 			stack_overflow!();
@@ -402,7 +395,7 @@ impl LuaStack {
 	pub fn push_c_function(&self, func: ffi::lua_CFunction) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushcfunction(self.state(), func);
+				ffi::lua_pushcfunction(self.to_ptr(), func);
 			}
 		} else {
 			stack_overflow!();
@@ -415,7 +408,7 @@ impl LuaStack {
 		let nvalues = self.push_many(upvalues);
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushcclosure(self.state(), func, nvalues);
+				ffi::lua_pushcclosure(self.to_ptr(), func, nvalues);
 			}
 		} else {
 			stack_overflow!();
@@ -428,7 +421,7 @@ impl LuaStack {
 	pub fn push_light_userdata(&self, ptr: LightUserdata) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushlightuserdata(self.state(), ptr);
+				ffi::lua_pushlightuserdata(self.to_ptr(), ptr);
 			}
 		} else {
 			stack_overflow!();
@@ -458,7 +451,7 @@ impl LuaStack {
 	pub unsafe fn push_index_unchecked(&self, idx: i32) {
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushvalue(self.state(), idx);
+				ffi::lua_pushvalue(self.to_ptr(), idx);
 			}
 		} else {
 			stack_overflow!();

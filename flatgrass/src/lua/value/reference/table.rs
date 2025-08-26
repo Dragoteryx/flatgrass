@@ -12,7 +12,7 @@ pub struct Table {
 	reference: Rc<Reference>,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	pub fn push_table(&self, tbl: &Table) {
 		self.push_reference(&tbl.reference);
 	}
@@ -71,7 +71,7 @@ impl Table {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_table(self);
-			let ptr = ffi::lua_topointer(lua.state(), -1);
+			let ptr = ffi::lua_topointer(lua.to_ptr(), -1);
 			stack.pop_n(1);
 			ptr
 		})
@@ -86,7 +86,7 @@ impl Table {
 				let stack = lua.stack();
 				stack.push_table(self);
 				stack.push_any(key);
-				ffi::lua_rawget(lua.state(), -2);
+				ffi::lua_rawget(lua.to_ptr(), -2);
 				let value = stack.pop_value_unchecked();
 				stack.pop_n(1);
 				value
@@ -106,7 +106,7 @@ impl Table {
 				stack.push_table(self);
 				stack.push_any(key);
 				stack.push_any(value);
-				ffi::lua_rawset(lua.state(), -3);
+				ffi::lua_rawset(lua.to_ptr(), -3);
 				stack.pop_n(1);
 			});
 		}
@@ -143,7 +143,7 @@ impl Table {
 				stack.push_table(self);
 				stack.push_any(key);
 				unsafe {
-					match ffi::lua_pcall(lua.state(), 2, 1, 0) {
+					match ffi::lua_pcall(lua.to_ptr(), 2, 1, 0) {
 						0 => Ok(stack.pop_value_unchecked()),
 						_ => Err(stack.pop_value_unchecked()),
 					}
@@ -173,7 +173,7 @@ impl Table {
 				stack.push_any(key);
 				stack.push_any(value);
 				unsafe {
-					match ffi::lua_pcall(lua.state(), 3, 0, 0) {
+					match ffi::lua_pcall(lua.to_ptr(), 3, 0, 0) {
 						0 => Ok(()),
 						_ => Err(stack.pop_value_unchecked()),
 					}
@@ -207,7 +207,7 @@ impl Table {
 			let stack = lua.stack();
 			stack.push_c_function(LEN);
 			stack.push_table(self);
-			match ffi::lua_pcall(lua.state(), 1, 1, 0) {
+			match ffi::lua_pcall(lua.to_ptr(), 1, 1, 0) {
 				0 => Ok(stack.pop_number_unchecked() as usize),
 				_ => Err(stack.pop_value_unchecked()),
 			}
@@ -223,7 +223,7 @@ impl Table {
 				let stack = lua.stack();
 				stack.push_table(self);
 				stack.push_any(key);
-				match ffi::lua_next(lua.state(), -2) {
+				match ffi::lua_next(lua.to_ptr(), -2) {
 					0 => {
 						stack.pop_n(1);
 						None
@@ -247,14 +247,14 @@ impl Table {
 		self.pairs().enumerate().all(|(i, _)| self.raw_has(i + 1))
 	}
 
-	pub fn ipairs(&self) -> Ipairs {
+	pub fn ipairs(&self) -> Ipairs<'_> {
 		Ipairs {
 			table: self,
 			key: 1,
 		}
 	}
 
-	pub fn pairs(&self) -> Pairs {
+	pub fn pairs(&self) -> Pairs<'_> {
 		Pairs {
 			table: self,
 			key: LuaValue::Nil,

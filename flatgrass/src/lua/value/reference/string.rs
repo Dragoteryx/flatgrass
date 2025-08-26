@@ -15,7 +15,7 @@ pub struct LuaString {
 	reference: Rc<Reference>,
 }
 
-impl LuaStack {
+impl Stack<'_> {
 	pub fn push_lua_string(&self, lstr: &LuaString) {
 		self.push_reference(&lstr.reference);
 	}
@@ -59,7 +59,7 @@ impl LuaString {
 			let stack = lua.stack();
 			stack.push_lua_string(self);
 			let mut len = 0;
-			let ptr = ffi::lua_tolstring(lua.state(), -1, &mut len);
+			let ptr = ffi::lua_tolstring(lua.to_ptr(), -1, &mut len);
 			let bytes = slice::from_raw_parts(ptr.cast(), len);
 			stack.pop_n(1);
 			bytes
@@ -74,7 +74,7 @@ impl LuaString {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_lua_string(self);
-			let ptr = ffi::lua_tostring(lua.state(), -1);
+			let ptr = ffi::lua_tostring(lua.to_ptr(), -1);
 			let cstr = CStr::from_ptr(ptr);
 			stack.pop_n(1);
 			cstr
