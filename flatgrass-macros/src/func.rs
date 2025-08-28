@@ -186,7 +186,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		#vis mod #ident {
 			use super::*;
 
-			pub fn to_lua #impl_generics () -> ::flatgrass::ffi::lua_CFunction #where_clause {
+			pub const fn to_lua #impl_generics () -> ::flatgrass::ffi::lua_CFunction #where_clause {
 				#body
 			}
 		}
