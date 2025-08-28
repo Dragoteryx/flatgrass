@@ -28,15 +28,15 @@ impl Realm {
 		}
 	}
 
-	pub fn server() -> bool {
+	pub fn is_server() -> bool {
 		Self::get() == Self::Server
 	}
 
-	pub fn client() -> bool {
+	pub fn is_client() -> bool {
 		Self::get() == Self::Client
 	}
 
-	pub fn menu() -> bool {
+	pub fn is_menu() -> bool {
 		Self::get() == Self::Menu
 	}
 }
