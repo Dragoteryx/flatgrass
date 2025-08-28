@@ -1,4 +1,10 @@
-use super::*;
+use super::Reference;
+use crate::ffi;
+use crate::lua::Lua;
+use crate::lua::error::FromLuaError;
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::value::{LuaType, LuaValue};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;

@@ -1,6 +1,10 @@
-use flatgrass_ffi::libc::localtime_s;
-
-use super::*;
+use super::Reference;
+use crate::ffi;
+use crate::lua::Lua;
+use crate::lua::error::FromLuaError;
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::value::{LuaType, LuaValue};
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
@@ -66,7 +70,7 @@ impl LuaString {
 		})
 	}
 
-	pub fn to_str(&self) -> Cow<str> {
+	pub fn to_str(&self) -> Cow<'_, str> {
 		String::from_utf8_lossy(self.to_bytes())
 	}
 

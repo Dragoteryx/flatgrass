@@ -1,6 +1,8 @@
-use super::*;
 use crate::ffi;
+use crate::lua::Lua;
+use std::error::Error;
 use std::ffi::CStr;
+use std::fmt::{self, Display};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BadArgumentError<T> {

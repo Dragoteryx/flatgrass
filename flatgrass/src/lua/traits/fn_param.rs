@@ -1,7 +1,9 @@
-use super::{FromLua, Lua, ToLua};
 use crate::ffi::lua_upvalueindex;
-use crate::lua::Stack;
-use crate::lua::errors::{BadArgumentError, LuaError};
+use crate::lua::Lua;
+use crate::lua::error::{BadArgumentError, LuaError, UnitializedStateError};
+use crate::lua::stack::Stack;
+use crate::lua::state::{State, StateRef};
+use crate::lua::traits::{FromLua, ToLua};
 use std::convert::Infallible;
 use std::mem::replace;
 
@@ -28,6 +30,24 @@ impl<'l> LuaFnParam<'l> for Stack<'l> {
 
 	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
 		Ok(lua.stack())
+	}
+}
+
+impl<'l, T: 'static> LuaFnParam<'l> for State<'l, T> {
+	type Err = LuaError<UnitializedStateError>;
+
+	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
+		lua.state()
+			.ok_or_else(|| LuaError::new(UnitializedStateError::new::<T>()))
+	}
+}
+
+impl<'l, T: 'static> LuaFnParam<'l> for StateRef<'l, T> {
+	type Err = LuaError<UnitializedStateError>;
+
+	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
+		lua.state_ref()
+			.ok_or_else(|| LuaError::new(UnitializedStateError::new::<T>()))
 	}
 }
 

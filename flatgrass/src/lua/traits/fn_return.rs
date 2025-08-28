@@ -1,4 +1,5 @@
-use super::{Lua, ToLua, ToLuaIter};
+use crate::lua::Lua;
+use crate::lua::traits::{ToLua, ToLuaIter};
 use std::convert::Infallible;
 
 #[repr(transparent)]

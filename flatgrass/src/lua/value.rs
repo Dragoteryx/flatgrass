@@ -1,15 +1,30 @@
-use super::errors::FromLuaError;
-use super::traits::{FromLua, ToLua, ToLuaIter};
+use crate::ffi;
+use crate::lua::Lua;
+use crate::lua::error::FromLuaError;
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, ToLua};
+use std::cell::UnsafeCell;
 use std::fmt::{self, Debug};
+use std::marker::PhantomData;
 use std::mem::forget;
-
-mod reference;
-pub use reference::*;
 
 #[cfg(feature = "serde")]
 mod serde;
 
-pub type LightUserdata = *mut crate::ffi::libc::c_void;
+pub mod coroutine;
+pub use coroutine::Coroutine;
+
+pub mod function;
+pub use function::Function;
+
+pub mod string;
+pub use string::LuaString;
+
+pub mod table;
+pub use table::Table;
+
+pub mod userdata;
+pub use userdata::{LightUserdata, Userdata};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LuaType {
@@ -126,5 +141,62 @@ impl Debug for LuaValue {
 			Self::Coroutine(cor) => Debug::fmt(cor, f),
 			Self::LightUserdata(lud) => Debug::fmt(lud, f),
 		}
+	}
+}
+
+#[repr(transparent)]
+struct Reference {
+	not_ref_unwind_safe: PhantomData<UnsafeCell<()>>,
+	not_unwind_safe: PhantomData<&'static mut ()>,
+	not_send_sync: PhantomData<*mut ()>,
+	id: i32,
+}
+
+impl Stack<'_> {
+	#[track_caller]
+	fn push_reference(&self, reference: &Reference) {
+		if self.check_size(1) {
+			unsafe {
+				ffi::lua_rawgeti(self.to_ptr(), ffi::LUA_REGISTRYINDEX, reference.id);
+			}
+		} else {
+			stack_overflow!();
+		}
+	}
+
+	unsafe fn pop_reference_unchecked(&self) -> Reference {
+		Reference {
+			id: unsafe { ffi::luaL_ref(self.to_ptr(), ffi::LUA_REGISTRYINDEX) },
+			not_ref_unwind_safe: PhantomData,
+			not_unwind_safe: PhantomData,
+			not_send_sync: PhantomData,
+		}
+	}
+
+	unsafe fn get_reference_unchecked(&self, idx: i32) -> Reference {
+		unsafe {
+			self.push_index_unchecked(idx);
+			self.pop_reference_unchecked()
+		}
+	}
+}
+
+impl Clone for Reference {
+	fn clone(&self) -> Self {
+		Lua::get(|lua| unsafe {
+			let stack = lua.stack();
+			stack.push_reference(self);
+			stack.pop_reference_unchecked()
+		})
+	}
+}
+
+impl Drop for Reference {
+	fn drop(&mut self) {
+		Lua::try_get(|lua| unsafe {
+			if let Some(lua) = lua {
+				ffi::luaL_unref(lua.to_ptr(), ffi::LUA_REGISTRYINDEX, self.id);
+			}
+		});
 	}
 }

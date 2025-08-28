@@ -1,5 +1,7 @@
-use super::*;
+use crate::lua::value::LuaType;
 use std::borrow::Cow;
+use std::error::Error;
+use std::fmt::{self, Display};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FromLuaError<'a> {

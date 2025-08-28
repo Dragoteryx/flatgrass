@@ -1,5 +1,5 @@
 use super::*;
-use crate::lua::errors::FromLuaError;
+use crate::lua::error::FromLuaError;
 use crate::lua::value::userdata::*;
 
 mod vector;

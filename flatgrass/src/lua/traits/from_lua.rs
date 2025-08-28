@@ -1,10 +1,19 @@
-use super::FromLua;
-use crate::lua::errors::FromLuaError;
+use crate::lua::error::FromLuaError;
 use crate::lua::value::{LightUserdata, LuaString, LuaType, LuaValue};
 use std::convert::Infallible;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
+
+pub trait FromLua: Sized {
+	type Err;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err>;
+
+	fn no_value() -> Result<Self, Self::Err> {
+		Self::from_lua(LuaValue::Nil)
+	}
+}
 
 #[cfg(feature = "either")]
 use either::Either;

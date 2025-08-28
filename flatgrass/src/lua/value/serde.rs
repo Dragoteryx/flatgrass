@@ -1,4 +1,4 @@
-use super::{LuaString, LuaValue, Table};
+use crate::lua::value::{LuaString, LuaValue, Table};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::ser::{self, Serialize, SerializeMap, SerializeSeq, Serializer};
 use std::fmt;

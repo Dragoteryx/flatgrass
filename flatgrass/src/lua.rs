@@ -1,8 +1,5 @@
 use crate::ffi;
-use std::any::{Any, TypeId};
-use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
-use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
+use std::cell::{Cell, OnceCell};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
 use std::ptr::null_mut;
@@ -21,18 +18,21 @@ mod macros;
 pub mod stack;
 use stack::Stack;
 
+pub mod state;
+use state::*;
+
 pub mod traits;
 use traits::ToLua;
 
 pub mod value;
 use value::LuaValue;
 
-pub mod errors;
+pub mod error;
 
 thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
-		states: OnceCell::default(),
+		state_manager: OnceCell::default(),
 	};
 }
 
@@ -40,7 +40,7 @@ thread_local! {
 #[derive(Debug)]
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
-	states: OnceCell<HashMap<TypeId, RefCell<Box<dyn Any>>>>,
+	state_manager: OnceCell<StateManager>,
 }
 
 impl Lua {
@@ -92,58 +92,46 @@ impl Lua {
 		Stack { lua: self }
 	}
 
-	pub fn init_states(&self, init: impl FnOnce(&mut StateInitializer<'_>)) -> bool {
-		match self.states.get().is_some() {
-			true => false,
-			false => {
-				let mut states = HashMap::new();
-				init(&mut StateInitializer { states: &mut states });
-				let _ = self.states.set(states);
+	pub fn state_manager(&self) -> Option<&StateManager> {
+		self.state_manager.get()
+	}
+
+	pub fn state<T: 'static>(&self) -> Option<State<'_, T>> {
+		self.state_manager().and_then(|states| states.get())
+	}
+
+	pub fn state_ref<T: 'static>(&self) -> Option<StateRef<'_, T>> {
+		self.state_manager().and_then(|states| states.get_ref())
+	}
+
+	pub fn init_state(&self, init: impl FnOnce(&mut StateManager)) -> bool {
+		match self.state_manager() {
+			Some(_) => false,
+			None => {
+				let mut state_manager = StateManager::default();
+				init(&mut state_manager);
+				let _ = self.state_manager.set(state_manager);
 				true
 			}
 		}
 	}
 
-	pub fn state<T: 'static>(&self) -> Option<State<'_, T>> {
-		self.states.get().and_then(|states| {
-			let type_id = TypeId::of::<T>();
-			states.get(&type_id).and_then(|cell| {
-				let borrow = cell.try_borrow_mut().ok()?;
-				Some(State {
-					inner: RefMut::map(borrow, |value| value.downcast_mut::<T>().unwrap()),
-				})
-			})
-		})
-	}
-
-	pub fn state_ref<T: 'static>(&self) -> Option<StateRef<'_, T>> {
-		self.states.get().and_then(|states| {
-			let type_id = TypeId::of::<T>();
-			states.get(&type_id).and_then(|cell| {
-				let borrow = cell.try_borrow().ok()?;
-				Some(StateRef {
-					inner: Ref::map(borrow, |value| value.downcast_ref::<T>().unwrap()),
-				})
-			})
-		})
-	}
-
 	/// Forces garbage collection.
-	pub fn collect_gc(&self) {
+	pub fn gc_collect(&self) {
 		unsafe {
 			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCCOLLECT, 0);
 		}
 	}
 
 	/// Restarts the garbage collector.
-	pub fn restart_gc(&self) {
+	pub fn gc_restart(&self) {
 		unsafe {
 			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCRESTART, 0);
 		}
 	}
 
 	/// Stops the garbage collector.
-	pub fn stop_gc(&self) {
+	pub fn gc_stop(&self) {
 		unsafe {
 			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCSTOP, 0);
 		}
@@ -196,50 +184,4 @@ impl Lua {
 
 	#[doc(hidden)]
 	pub fn __fg_exit(&self) {}
-}
-
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct StateInitializer<'l> {
-	states: &'l mut HashMap<TypeId, RefCell<Box<dyn Any>>>,
-}
-
-impl StateInitializer<'_> {
-	pub fn init<T: 'static>(&mut self, value: T) {
-		self.states.insert(TypeId::of::<T>(), RefCell::new(Box::new(value)));
-	}
-}
-
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct State<'l, T> {
-	inner: RefMut<'l, T>,
-}
-
-impl<T> Deref for State<'_, T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		&self.inner
-	}
-}
-
-impl<T> DerefMut for State<'_, T> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.inner
-	}
-}
-
-#[repr(transparent)]
-#[derive(Debug)]
-pub struct StateRef<'l, T> {
-	inner: Ref<'l, T>,
-}
-
-impl<T> Deref for StateRef<'_, T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		&self.inner
-	}
 }

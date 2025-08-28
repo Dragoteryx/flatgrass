@@ -13,6 +13,13 @@ macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
 either = ["dep:either"]
 
+[dependencies.flatgrass-ffi]
+path = "../flatgrass-ffi"
+
+[dependencies.flatgrass-macros]
+path = "../flatgrass-macros"
+optional = true
+
 [dependencies.either]
 version = "1"
 optional = true
@@ -21,13 +28,6 @@ optional = true
 version = "1"
 features = ["derive"]
 optional = true
-
-[dependencies.flatgrass-macros]
-path = "../flatgrass-macros"
-optional = true
-
-[dependencies.flatgrass-ffi]
-path = "../flatgrass-ffi"
 
 [build-dependencies]
 rustc_version = "0.4"

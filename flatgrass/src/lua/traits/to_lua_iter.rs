@@ -1,4 +1,11 @@
-use super::{LuaValue, ToLua, ToLuaIter};
+use crate::lua::traits::ToLua;
+use crate::lua::value::LuaValue;
+
+pub trait ToLuaIter {
+	type LuaIter: IntoIterator<Item: ToLua>;
+
+	fn to_lua_iter(self) -> Self::LuaIter;
+}
 
 impl<T: ToLua> ToLuaIter for T {
 	type LuaIter = [T; 1];

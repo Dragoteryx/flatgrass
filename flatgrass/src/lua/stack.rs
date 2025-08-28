@@ -1,7 +1,8 @@
-use super::Lua;
-use super::traits::{ToLua, ToLuaIter};
-use super::value::{LightUserdata, LuaType, LuaValue};
 use crate::ffi;
+use crate::lua::Lua;
+use crate::lua::traits::{ToLua, ToLuaIter};
+use crate::lua::value::userdata::LightUserdata;
+use crate::lua::value::{LuaType, LuaValue};
 use std::ffi::CStr;
 
 /// Provides a safe interface to the Lua stack.

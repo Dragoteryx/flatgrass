@@ -1,7 +1,15 @@
-use super::*;
+use super::Reference;
+use crate::ffi;
+use crate::lua::Lua;
+use crate::lua::error::FromLuaError;
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::value::{LuaType, LuaValue};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
+
+pub type LightUserdata = *mut crate::ffi::libc::c_void;
 
 #[repr(transparent)]
 #[derive(Clone)]

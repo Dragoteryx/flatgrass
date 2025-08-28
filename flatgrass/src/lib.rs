@@ -18,9 +18,10 @@ pub mod gm;
 /// Re-exports commonly used macros and types.
 pub mod prelude {
 	pub use crate::gm::printfg;
-	pub use crate::lua::errors::LuaError;
+	pub use crate::lua::Lua;
+	pub use crate::lua::error::LuaError;
+	pub use crate::lua::state::{State, StateRef};
 	pub use crate::lua::traits::{FromLua, ToLua};
 	pub use crate::lua::value::{Function, LuaString, LuaValue, Table, Userdata};
-	pub use crate::lua::{Lua, State, StateRef};
 	pub use crate::lua::{func, table};
 }

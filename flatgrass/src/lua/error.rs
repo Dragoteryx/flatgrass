@@ -1,6 +1,6 @@
-use super::Lua;
+use crate::lua::Lua;
 use crate::lua::traits::ToLua;
-use crate::lua::value::{LuaType, LuaValue};
+use crate::lua::value::LuaValue;
 use std::error::Error;
 use std::fmt::{self, Display};
 
@@ -9,6 +9,9 @@ pub use bad_argument::*;
 
 mod from_lua;
 pub use from_lua::*;
+
+mod uninit_state;
+pub use uninit_state::*;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LuaError<T> {
