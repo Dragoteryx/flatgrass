@@ -10,26 +10,19 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 	let mut errors = Vec::new();
 	for param in &func.sig.generics.params {
 		if let GenericParam::Type(param) = param {
-			errors.push(
-				quote_spanned!(param.span() => compile_error!("the entry function cannot have type parameters")),
-			);
+			errors.push(quote_spanned! { param.span() =>
+				compile_error!("the entry function cannot have type parameters")
+			});
 		} else if let GenericParam::Const(param) = param {
-			errors.push(
-				quote_spanned!(param.span() => compile_error!("the entry function cannot have const parameters")),
-			);
+			errors.push(quote_spanned! { param.span() =>
+				compile_error!("the entry function cannot have const parameters")
+			});
 		}
 	}
 
-	quote! {
-		#tokens
-
-		#(#errors;)*
-
-		#[doc(hidden)]
-		#[unsafe(no_mangle)]
-		pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-			use crate::{gmod13_open, gmod13_close};
-
+	let body = match errors.is_empty() {
+		false => quote! { 0 },
+		true => quote! {
 			if ::flatgrass::lua::Lua::init(state, |lua| {
 				lua.__fg_entry();
 				let func = ::flatgrass::lua::func!(#ident);
@@ -47,6 +40,19 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 				0
 			}
 		}
+	};
+
+	quote! {
+		#tokens
+
+		#(#errors;)*
+
+		#[doc(hidden)]
+		#[unsafe(no_mangle)]
+		pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+			use crate::{gmod13_open, gmod13_close};
+			#body
+		}
 	}
 }
 
@@ -57,26 +63,19 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 	let mut errors = Vec::new();
 	for param in &func.sig.generics.params {
 		if let GenericParam::Type(param) = param {
-			errors.push(
-				quote_spanned!(param.span() => compile_error!("the exit function cannot have type parameters")),
-			);
+			errors.push(quote_spanned! { param.span() =>
+				compile_error!("the exit function cannot have type parameters")
+			});
 		} else if let GenericParam::Const(param) = param {
-			errors.push(
-				quote_spanned!(param.span() => compile_error!("the exit function cannot have const parameters")),
-			);
+			errors.push(quote_spanned! { param.span() =>
+				compile_error!("the exit function cannot have const parameters")
+			});
 		}
 	}
 
-	quote! {
-		#tokens
-
-		#(#errors;)*
-
-		#[doc(hidden)]
-		#[unsafe(no_mangle)]
-		pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-			use crate::{gmod13_open, gmod13_close};
-
+	let body = match errors.is_empty() {
+		false => quote! { 0 },
+		true => quote! {
 			if ::flatgrass::lua::Lua::init(state, |lua| {
 				let func = ::flatgrass::lua::func!(#ident);
 				let res = func.call(());
@@ -94,6 +93,19 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 			} else {
 				0
 			}
+		}
+	};
+
+	quote! {
+		#tokens
+
+		#(#errors;)*
+
+		#[doc(hidden)]
+		#[unsafe(no_mangle)]
+		pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+			use crate::{gmod13_open, gmod13_close};
+			#body
 		}
 	}
 }
