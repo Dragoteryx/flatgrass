@@ -3,10 +3,10 @@
 #[macro_export]
 macro_rules! func {
 	($func:ident) => {
-		$crate::lua::value::Function::new($func::to_lua)
+		$crate::lua::value::Function::new($func::to_lua())
 	};
 	($func:ident :: <$($ty:ty),* $(,)?>) => {
-		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>)
+		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>())
 	};
 }
 

@@ -1,7 +1,7 @@
 use crate::ffi::lua_upvalueindex;
 use crate::lua::Lua;
 use crate::lua::error::{BadArgumentError, LuaError, UnitializedStateError};
-use crate::lua::stack::Stack;
+use crate::lua::stack::LuaStack;
 use crate::lua::state::{State, StateRef};
 use crate::lua::traits::{FromLua, ToLua};
 use std::convert::Infallible;
@@ -25,7 +25,7 @@ impl<'l> LuaFnParam<'l> for &'l Lua {
 	}
 }
 
-impl<'l> LuaFnParam<'l> for Stack<'l> {
+impl<'l> LuaFnParam<'l> for LuaStack<'l> {
 	type Err = Infallible;
 
 	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {

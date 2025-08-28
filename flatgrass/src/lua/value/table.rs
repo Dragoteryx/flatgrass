@@ -1,10 +1,9 @@
-use super::Reference;
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::error::FromLuaError;
-use crate::lua::stack::Stack;
+use crate::lua::stack::LuaStack;
 use crate::lua::traits::{FromLua, ToLua};
-use crate::lua::value::{LuaType, LuaValue};
+use crate::lua::value::{LuaReference, LuaType, LuaValue};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -15,10 +14,10 @@ use std::rc::Rc;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Table {
-	reference: Rc<Reference>,
+	reference: Rc<LuaReference>,
 }
 
-impl Stack<'_> {
+impl LuaStack<'_> {
 	pub fn push_table(&self, tbl: &Table) {
 		self.push_reference(&tbl.reference);
 	}

@@ -8,18 +8,18 @@ use std::ffi::CStr;
 /// Provides a safe interface to the Lua stack.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy)]
-pub struct Stack<'l> {
+pub struct LuaStack<'l> {
 	pub(super) lua: &'l Lua,
 }
 
 /// An iterator over the values on the stack.
 #[derive(Debug, Clone, Copy)]
-pub struct StackIter<'l> {
-	stack: Stack<'l>,
+pub struct LuaStackIter<'l> {
+	stack: LuaStack<'l>,
 	idx: i32,
 }
 
-impl Iterator for StackIter<'_> {
+impl Iterator for LuaStackIter<'_> {
 	type Item = LuaValue;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -36,15 +36,15 @@ impl Iterator for StackIter<'_> {
 	}
 }
 
-impl<'l> Stack<'l> {
+impl<'l> LuaStack<'l> {
 	/// The raw Lua state associated with this stack.
 	pub fn to_ptr(&self) -> *mut ffi::lua_State {
 		self.lua.to_ptr()
 	}
 
 	/// Iterate over the values on the stack.
-	pub fn iter(&self) -> StackIter<'l> {
-		StackIter {
+	pub fn iter(&self) -> LuaStackIter<'l> {
+		LuaStackIter {
 			stack: *self,
 			idx: 1,
 		}

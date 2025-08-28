@@ -20,44 +20,31 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 		}
 	}
 
-	if !errors.is_empty() {
-		quote! {
-			#tokens
+	quote! {
+		#tokens
 
-			#(#errors;)*
+		#(#errors;)*
 
-			#[doc(hidden)]
-			#[unsafe(no_mangle)]
-			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-				use crate::{gmod13_open, gmod13_close};
-				0
-			}
-		}
-	} else {
-		quote! {
-			#tokens
+		#[doc(hidden)]
+		#[unsafe(no_mangle)]
+		pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+			use crate::{gmod13_open, gmod13_close};
 
-			#[doc(hidden)]
-			#[unsafe(no_mangle)]
-			pub unsafe extern "C-unwind" fn gmod13_open(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-				use crate::{gmod13_open, gmod13_close};
-
-				if ::flatgrass::lua::Lua::init(state, |lua| {
-					lua.__fg_entry();
-					let func = ::flatgrass::lua::func!(#ident);
-					match func.call(()) {
-						Ok(_) => false,
-						Err(err) => {
-							lua.stack().clear();
-							lua.stack().push_any(err);
-							true
-						},
-					}
-				}) {
-					::flatgrass::ffi::lua_error(state)
-				} else {
-					0
+			if ::flatgrass::lua::Lua::init(state, |lua| {
+				lua.__fg_entry();
+				let func = ::flatgrass::lua::func!(#ident);
+				match func.call(()) {
+					Ok(_) => false,
+					Err(err) => {
+						lua.stack().clear();
+						lua.stack().push_any(err);
+						true
+					},
 				}
+			}) {
+				::flatgrass::ffi::lua_error(state)
+			} else {
+				0
 			}
 		}
 	}
@@ -80,45 +67,32 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 		}
 	}
 
-	if !errors.is_empty() {
-		quote! {
-			#tokens
+	quote! {
+		#tokens
 
-			#(#errors;)*
+		#(#errors;)*
 
-			#[doc(hidden)]
-			#[unsafe(no_mangle)]
-			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-				use crate::{gmod13_open, gmod13_close};
-				0
-			}
-		}
-	} else {
-		quote! {
-			#tokens
+		#[doc(hidden)]
+		#[unsafe(no_mangle)]
+		pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+			use crate::{gmod13_open, gmod13_close};
 
-			#[doc(hidden)]
-			#[unsafe(no_mangle)]
-			pub unsafe extern "C-unwind" fn gmod13_close(state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-				use crate::{gmod13_open, gmod13_close};
-
-				if ::flatgrass::lua::Lua::init(state, |lua| {
-					let func = ::flatgrass::lua::func!(#ident);
-					let res = func.call(());
-					lua.__fg_exit();
-					match res {
-						Ok(_) => false,
-						Err(err) => {
-							lua.stack().clear();
-							lua.stack().push_any(err);
-							true
-						},
-					}
-				}) {
-					::flatgrass::ffi::lua_error(state)
-				} else {
-					0
+			if ::flatgrass::lua::Lua::init(state, |lua| {
+				let func = ::flatgrass::lua::func!(#ident);
+				let res = func.call(());
+				lua.__fg_exit();
+				match res {
+					Ok(_) => false,
+					Err(err) => {
+						lua.stack().clear();
+						lua.stack().push_any(err);
+						true
+					},
 				}
+			}) {
+				::flatgrass::ffi::lua_error(state)
+			} else {
+				0
 			}
 		}
 	}
@@ -148,22 +122,8 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		);
 	}
 
-	if !errors.is_empty() {
-		quote! {
-			#func
-
-			#(#errors;)*
-
-			#[doc(hidden)]
-			#vis mod #ident {
-				use super::*;
-
-				#[doc(hidden)]
-				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
-					0
-				}
-			}
-		}
+	let body = if !errors.is_empty() {
+		quote! { ::flatgrass::ffi::raw_function!(|_| 0) }
 	} else {
 		let args = func.sig.inputs.iter().map(|input| {
 			quote_spanned! { input.span() =>
@@ -178,7 +138,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			}
 		});
 
-		let body = if func.sig.asyncness.is_some() {
+		let call = if func.sig.asyncness.is_some() {
 			quote_spanned! { ret_span =>
 
 
@@ -200,25 +160,34 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 		};
 
 		quote! {
-			#func
-
-			#[doc(hidden)]
-			#vis mod #ident {
-				use super::*;
-
-				#[doc(hidden)]
-				pub unsafe extern "C-unwind" fn to_lua #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
-					match ::flatgrass::lua::Lua::init(state, |lua| {
-						let (mut arg, mut upv) = (1, 1);
-						#body
-					}) {
-						::core::option::Option::None => ::flatgrass::ffi::lua_error(state),
-						::core::option::Option::Some(ret) => match ret {
-							::flatgrass::lua::traits::Return::Yield(i) => ::flatgrass::ffi::lua_yield(state, i),
-							::flatgrass::lua::traits::Return::Values(i) => i,
-						}
+			pub unsafe extern "C-unwind" fn func #impl_generics (state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
+				match ::flatgrass::lua::Lua::init(state, |lua| {
+					let (mut arg, mut upv) = (1, 1);
+					#call
+				}) {
+					::core::option::Option::None => ::flatgrass::ffi::lua_error(state),
+					::core::option::Option::Some(ret) => match ret {
+						::flatgrass::lua::traits::Return::Yield(i) => ::flatgrass::ffi::lua_yield(state, i),
+						::flatgrass::lua::traits::Return::Values(i) => i,
 					}
 				}
+			}
+
+			func::<#type_generics>
+		}
+	};
+
+	quote! {
+		#func
+
+		#(#errors;)*
+
+		#[doc(hidden)]
+		#vis mod #ident {
+			use super::*;
+
+			pub fn to_lua #impl_generics () -> ::flatgrass::ffi::lua_CFunction #where_clause {
+				#body
 			}
 		}
 	}

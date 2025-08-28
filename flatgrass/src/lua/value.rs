@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::error::FromLuaError;
-use crate::lua::stack::Stack;
+use crate::lua::stack::LuaStack;
 use crate::lua::traits::{FromLua, ToLua};
 use std::cell::UnsafeCell;
 use std::fmt::{self, Debug};
@@ -145,16 +145,16 @@ impl Debug for LuaValue {
 }
 
 #[repr(transparent)]
-struct Reference {
+struct LuaReference {
 	not_ref_unwind_safe: PhantomData<UnsafeCell<()>>,
 	not_unwind_safe: PhantomData<&'static mut ()>,
 	not_send_sync: PhantomData<*mut ()>,
 	id: i32,
 }
 
-impl Stack<'_> {
+impl LuaStack<'_> {
 	#[track_caller]
-	fn push_reference(&self, reference: &Reference) {
+	fn push_reference(&self, reference: &LuaReference) {
 		if self.check_size(1) {
 			unsafe {
 				ffi::lua_rawgeti(self.to_ptr(), ffi::LUA_REGISTRYINDEX, reference.id);
@@ -164,8 +164,8 @@ impl Stack<'_> {
 		}
 	}
 
-	unsafe fn pop_reference_unchecked(&self) -> Reference {
-		Reference {
+	unsafe fn pop_reference_unchecked(&self) -> LuaReference {
+		LuaReference {
 			id: unsafe { ffi::luaL_ref(self.to_ptr(), ffi::LUA_REGISTRYINDEX) },
 			not_ref_unwind_safe: PhantomData,
 			not_unwind_safe: PhantomData,
@@ -173,7 +173,7 @@ impl Stack<'_> {
 		}
 	}
 
-	unsafe fn get_reference_unchecked(&self, idx: i32) -> Reference {
+	unsafe fn get_reference_unchecked(&self, idx: i32) -> LuaReference {
 		unsafe {
 			self.push_index_unchecked(idx);
 			self.pop_reference_unchecked()
@@ -181,7 +181,7 @@ impl Stack<'_> {
 	}
 }
 
-impl Clone for Reference {
+impl Clone for LuaReference {
 	fn clone(&self) -> Self {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
@@ -191,7 +191,7 @@ impl Clone for Reference {
 	}
 }
 
-impl Drop for Reference {
+impl Drop for LuaReference {
 	fn drop(&mut self) {
 		Lua::try_get(|lua| unsafe {
 			if let Some(lua) = lua {

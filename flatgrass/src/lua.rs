@@ -16,7 +16,7 @@ pub use crate::{func, table};
 mod macros;
 
 pub mod stack;
-use stack::Stack;
+use stack::LuaStack;
 
 pub mod state;
 use state::*;
@@ -88,8 +88,8 @@ impl Lua {
 	}
 
 	/// The associated Lua stack.
-	pub fn stack(&self) -> Stack<'_> {
-		Stack { lua: self }
+	pub fn stack(&self) -> LuaStack<'_> {
+		LuaStack { lua: self }
 	}
 
 	pub fn state_manager(&self) -> Option<&StateManager> {

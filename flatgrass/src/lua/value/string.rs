@@ -1,10 +1,9 @@
-use super::Reference;
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::error::FromLuaError;
-use crate::lua::stack::Stack;
+use crate::lua::stack::LuaStack;
 use crate::lua::traits::{FromLua, ToLua};
-use crate::lua::value::{LuaType, LuaValue};
+use crate::lua::value::{LuaReference, LuaType, LuaValue};
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
@@ -16,10 +15,10 @@ use std::slice;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct LuaString {
-	reference: Rc<Reference>,
+	reference: Rc<LuaReference>,
 }
 
-impl Stack<'_> {
+impl LuaStack<'_> {
 	pub fn push_lua_string(&self, lstr: &LuaString) {
 		self.push_reference(&lstr.reference);
 	}
