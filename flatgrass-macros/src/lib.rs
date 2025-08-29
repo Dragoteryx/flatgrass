@@ -2,6 +2,8 @@ use proc_macro::TokenStream;
 
 mod func;
 
+mod derive;
+
 /// Marks a function as the entry point of your module.
 ///
 /// This function is called when your module is first required from Lua.\
@@ -58,4 +60,22 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
 	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
 	let func = syn::parse_macro_input!(input as syn::ItemFn);
 	func::generate_func(&func).into()
+}
+
+/// Automatically implements the `ToLua` trait for structs
+/// by converting each field to a Lua table entry.
+/// 
+/// # Examples
+/// 
+/// ```
+/// #[derive(ToLua)]
+/// struct Player {
+/// 	name: String,
+/// 	score: u32,
+/// }
+/// ```
+#[proc_macro_derive(ToLua)]
+pub fn to_lua(input: TokenStream) -> TokenStream {
+	let input = syn::parse_macro_input!(input as syn::DeriveInput);
+	derive::to_lua(input).into()
 }

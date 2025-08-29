@@ -10,6 +10,9 @@ use std::sync::Arc;
 #[cfg(feature = "either")]
 use either::Either;
 
+#[cfg(feature = "macros")]
+pub use flatgrass_macros::ToLua;
+
 pub trait ToLua {
 	fn to_lua_by_ref(&self) -> LuaValue;
 

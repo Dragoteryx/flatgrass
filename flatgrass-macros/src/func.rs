@@ -201,7 +201,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 					#body
 				}
 
-				__fg_func::<#type_generics>
+				__fg_func #generics_turbofish
 			}
 		}
 	}
