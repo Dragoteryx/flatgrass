@@ -1,8 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::error::FromLuaError;
 use crate::lua::stack::LuaStack;
-use crate::lua::traits::{FromLua, ToLua, ToLuaIter};
+use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaIter};
 use crate::lua::value::{LuaReference, LuaType, LuaValue};
 use std::cmp::Ordering;
 use std::collections::VecDeque;

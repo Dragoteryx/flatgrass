@@ -27,7 +27,8 @@ use traits::ToLua;
 pub mod value;
 use value::LuaValue;
 
-pub mod error;
+mod error;
+pub use error::*;
 
 thread_local! {
 	static LUA: Lua = Lua {
@@ -97,11 +98,11 @@ impl Lua {
 	}
 
 	pub fn state<T: 'static>(&self) -> Option<State<'_, T>> {
-		self.state_manager().and_then(|states| states.get())
+		self.state_manager().and_then(StateManager::get)
 	}
 
 	pub fn state_ref<T: 'static>(&self) -> Option<StateRef<'_, T>> {
-		self.state_manager().and_then(|states| states.get_ref())
+		self.state_manager().and_then(StateManager::get_ref)
 	}
 
 	pub fn init_state(&self, init: impl FnOnce(&mut StateManager)) -> bool {

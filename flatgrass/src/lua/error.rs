@@ -4,15 +4,6 @@ use crate::lua::value::LuaValue;
 use std::error::Error;
 use std::fmt::{self, Display};
 
-mod bad_argument;
-pub use bad_argument::*;
-
-mod from_lua;
-pub use from_lua::*;
-
-mod uninit_state;
-pub use uninit_state::*;
-
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LuaError<T> {
 	location: String,

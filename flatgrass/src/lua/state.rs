@@ -1,6 +1,9 @@
+use std::any::type_name;
 use std::any::{Any, TypeId};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::{self, Display};
 use std::ops::{Deref, DerefMut};
 
 #[repr(transparent)]
@@ -63,5 +66,30 @@ impl<T> Deref for StateRef<'_, T> {
 
 	fn deref(&self) -> &Self::Target {
 		&self.inner
+	}
+}
+
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct StateError {
+	type_name: &'static str,
+}
+
+impl StateError {
+	pub fn new<T: 'static>() -> Self {
+		Self {
+			type_name: type_name::<T>(),
+		}
+	}
+
+	pub fn type_name(&self) -> &'static str {
+		self.type_name
+	}
+}
+
+impl Error for StateError {}
+impl Display for StateError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "cannot retrieve state of type '{}'", self.type_name)
 	}
 }

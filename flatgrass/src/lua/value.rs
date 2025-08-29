@@ -1,8 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::error::FromLuaError;
 use crate::lua::stack::LuaStack;
-use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::traits::{FromLua, FromLuaError, ToLua};
 use std::cell::UnsafeCell;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;

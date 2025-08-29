@@ -39,7 +39,7 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 			} else {
 				0
 			}
-		}
+		},
 	};
 
 	quote! {
@@ -93,7 +93,7 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 			} else {
 				0
 			}
-		}
+		},
 	};
 
 	quote! {
@@ -164,7 +164,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 							::core::option::Option::None
 						}
 					}
-				}
+				},
 			};
 
 			quote! {
