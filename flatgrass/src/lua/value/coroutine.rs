@@ -63,6 +63,18 @@ impl LuaStack<'_> {
 }
 
 impl Coroutine {
+	pub fn is_normal(&self) -> bool {
+		self.status() == Status::Normal
+	}
+
+	pub fn is_suspended(&self) -> bool {
+		self.status() == Status::Suspended
+	}
+
+	pub fn is_dead(&self) -> bool {
+		self.status() == Status::Dead
+	}
+
 	pub fn to_ptr(&self) -> *mut ffi::lua_State {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
@@ -114,7 +126,7 @@ impl Coroutine {
 	pub fn values(&self) -> Values<'_> {
 		Values {
 			coroutine: self,
-			done: false,
+			done: self.is_dead(),
 		}
 	}
 }
@@ -186,21 +198,21 @@ pub struct Values<'c> {
 }
 
 impl Iterator for Values<'_> {
-	type Item = Result<VecDeque<LuaValue>, LuaValue>;
+	type Item = VecDeque<LuaValue>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.done {
 			None
 		} else {
 			match self.coroutine.resume(()) {
-				Ok(Resume::Yield(vals)) => Some(Ok(vals)),
+				Ok(Resume::Yield(vals)) => Some(vals),
 				Ok(Resume::Return(vals)) => {
 					self.done = true;
-					Some(Ok(vals))
+					Some(vals)
 				}
-				Err(err) => {
+				Err(_) => {
 					self.done = true;
-					Some(Err(err))
+					None
 				}
 			}
 		}
