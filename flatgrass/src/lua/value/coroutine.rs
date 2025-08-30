@@ -120,32 +120,23 @@ impl Coroutine {
 
 	pub fn resume<T: ToLuaIter>(&self, args: T) -> Result<Resume, LuaValue> {
 		unsafe {
-			Lua::init(self.to_ptr(), |lua| {
-				let stack = lua.stack();
-				let n = stack.push_many(args);
-				match ffi::lua_resume(lua.to_ptr(), n) {
-					status @ (0 | ffi::LUA_YIELD) => {
-						let mut values = VecDeque::new();
-						while stack.size() > 0 {
-							values.push_front(stack.pop_value_unchecked());
-						}
-
-						if status == 0 {
-							Ok(Resume::Return(values))
-						} else {
-							Ok(Resume::Yield(values))
-						}
+			let stack = LuaStack::new(self.to_ptr());
+			let n = stack.push_many(args);
+			match ffi::lua_resume(stack.to_ptr(), n) {
+				status @ (0 | ffi::LUA_YIELD) => {
+					let mut values = VecDeque::new();
+					while stack.size() > 0 {
+						values.push_front(stack.pop_value_unchecked());
 					}
-					_ => Err(stack.pop_value_unchecked()),
-				}
-			})
-		}
-	}
 
-	pub fn values(&self) -> Iter<'_> {
-		Iter {
-			coroutine: self,
-			dead: self.is_dead(),
+					if status == 0 {
+						Ok(Resume::Return(values))
+					} else {
+						Ok(Resume::Yield(values))
+					}
+				}
+				_ => Err(stack.pop_value_unchecked()),
+			}
 		}
 	}
 }
@@ -209,33 +200,5 @@ impl Ord for Coroutine {
 impl Hash for Coroutine {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.to_ptr().hash(state);
-	}
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Iter<'c> {
-	coroutine: &'c Coroutine,
-	dead: bool,
-}
-
-impl Iterator for Iter<'_> {
-	type Item = VecDeque<LuaValue>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		if self.dead {
-			None
-		} else {
-			match self.coroutine.resume(()) {
-				Ok(Resume::Yield(vals)) => Some(vals),
-				Ok(Resume::Return(vals)) => {
-					self.dead = true;
-					Some(vals)
-				}
-				Err(_) => {
-					self.dead = true;
-					None
-				}
-			}
-		}
 	}
 }
