@@ -144,7 +144,7 @@ impl Default for Function {
 
 impl Debug for Function {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Function[{:?}]", self.to_ptr())
+		write!(f, "Function <{:?}>", self.to_ptr())
 	}
 }
 

@@ -64,9 +64,9 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Automatically implements the `ToLua` trait for structs
 /// by converting each field to a Lua table entry.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// #[derive(ToLua)]
 /// struct Player {

@@ -99,7 +99,7 @@ impl FromLua for Userdata {
 
 impl Debug for Userdata {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Userdata[{:?}]", self.to_ptr())
+		write!(f, "Userdata <{:?}>", self.to_ptr())
 	}
 }
 

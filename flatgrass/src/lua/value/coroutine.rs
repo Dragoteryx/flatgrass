@@ -143,7 +143,7 @@ impl FromLua for Coroutine {
 
 impl Debug for Coroutine {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Coroutine[{:?}]", self.to_ptr())
+		write!(f, "Coroutine <{:?}>", self.to_ptr())
 	}
 }
 

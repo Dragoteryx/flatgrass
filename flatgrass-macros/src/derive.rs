@@ -6,7 +6,9 @@ use syn::*;
 pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 	for param in &mut input.generics.params {
 		if let GenericParam::Type(param) = param {
-			param.bounds.push(parse_quote!(::flatgrass::lua::traits::ToLua));
+			param
+				.bounds
+				.push(parse_quote!(::flatgrass::lua::traits::ToLua));
 		}
 	}
 
@@ -21,7 +23,7 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 			let ident = &input.ident;
 			let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 			match &data.fields {
-				Fields::Unit => quote! { },
+				Fields::Unit => quote! {},
 				Fields::Unnamed(fields) => {
 					let fields_to_lua = fields.unnamed.iter().enumerate().map(|(i, field)| {
 						let index = Index::from(i);
@@ -30,12 +32,13 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 						}
 					});
 
-					let fields_to_lua_by_ref = fields.unnamed.iter().enumerate().map(|(i, field)| {
-						let index = Index::from(i);
-						quote_spanned! { field.span() =>
-							::flatgrass::lua::traits::ToLua::to_lua_by_ref(&self.#index)
-						}
-					});
+					let fields_to_lua_by_ref =
+						fields.unnamed.iter().enumerate().map(|(i, field)| {
+							let index = Index::from(i);
+							quote_spanned! { field.span() =>
+								::flatgrass::lua::traits::ToLua::to_lua_by_ref(&self.#index)
+							}
+						});
 
 					quote! {
 						#[automatically_derived]
@@ -45,7 +48,7 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 									#(#fields_to_lua_by_ref,)*
 								])
 							}
-				
+
 							fn to_lua(self) -> ::flatgrass::lua::value::LuaValue
 							where
 								Self: Sized,
@@ -71,7 +74,7 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 							#name: ::flatgrass::lua::traits::ToLua::to_lua_by_ref(&self.#name)
 						}
 					});
-					
+
 					quote! {
 						#[automatically_derived]
 						impl #impl_generics ::flatgrass::lua::traits::ToLua for #ident #ty_generics #where_clause {
@@ -80,7 +83,7 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 									#(#fields_to_lua_by_ref,)*
 								})
 							}
-				
+
 							fn to_lua(self) -> ::flatgrass::lua::value::LuaValue
 							where
 								Self: Sized,

@@ -117,7 +117,7 @@ impl Table {
 	}
 
 	pub fn raw_push<V: ToLua>(&self, value: V) {
-		self.raw_set(self.len().unwrap_or(0) + 1, value);
+		self.raw_set(self.len() + 1, value);
 	}
 
 	pub fn raw_remove<K: ToLua>(&self, key: K) -> LuaValue {
@@ -128,7 +128,7 @@ impl Table {
 	}
 
 	pub fn raw_pop(&self) -> LuaValue {
-		self.raw_remove(self.len().unwrap_or(0))
+		self.raw_remove(self.len())
 	}
 
 	pub fn get<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
@@ -187,7 +187,7 @@ impl Table {
 	}
 
 	pub fn push<V: ToLua>(&self, value: V) -> Result<(), LuaValue> {
-		self.set(self.len().unwrap_or(0) + 1, value)
+		self.set(self.len() + 1, value)
 	}
 
 	pub fn remove<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
@@ -197,10 +197,10 @@ impl Table {
 	}
 
 	pub fn pop(&self) -> Result<LuaValue, LuaValue> {
-		self.remove(self.len().unwrap_or(0))
+		self.remove(self.len())
 	}
 
-	pub fn len(&self) -> Result<usize, LuaValue> {
+	pub fn len(&self) -> usize {
 		static LEN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let len = ffi::lua_objlen(state, 1);
 			ffi::lua_pushnumber(state, len as f64);
@@ -212,8 +212,8 @@ impl Table {
 			stack.push_c_function(LEN);
 			stack.push_table(self);
 			match ffi::lua_pcall(lua.to_ptr(), 1, 1, 0) {
-				0 => Ok(stack.pop_number_unchecked() as usize),
-				_ => Err(stack.pop_value_unchecked()),
+				0 => stack.pop_number_unchecked() as usize,
+				_ => 0,
 			}
 		})
 	}
@@ -332,15 +332,13 @@ impl Default for Table {
 	}
 }
 
+#[rustfmt::skip]
 impl Debug for Table {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Table[{:?}] ", self.to_ptr())?;
+		write!(f, "Table <{:?}> ", self.to_ptr())?;
 		self.recurse(|depth| match (depth > 0, self.is_sequential()) {
 			(false, false) => f.debug_map().entries(self.pairs()).finish(),
-			(false, true) => f
-				.debug_list()
-				.entries(self.ipairs().map(|(_, v)| v))
-				.finish(),
+			(false, true) => f.debug_list().entries(self.ipairs().map(|(_, v)| v)).finish(),
 			(true, false) => write!(f, "{{..}}"),
 			(true, true) => write!(f, "[..]"),
 		})

@@ -15,7 +15,7 @@ impl Serialize for Table {
 			true => Err(ser::Error::custom("cannot serialize table with cycles")),
 			false => {
 				if self.is_sequential() {
-					let mut seq = serializer.serialize_seq(self.len().ok())?;
+					let mut seq = serializer.serialize_seq(Some(self.len()))?;
 					self.ipairs()
 						.try_for_each(|value| seq.serialize_element(&value))?;
 					seq.end()
