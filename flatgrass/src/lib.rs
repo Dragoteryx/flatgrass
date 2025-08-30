@@ -24,7 +24,7 @@ pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::lua::traits::{FromLua, ToLua};
 	#[doc(no_inline)]
-	pub use crate::lua::value::{Function, LuaString, LuaValue, Table, Userdata};
+	pub use crate::lua::value::{Coroutine, Function, LuaString, LuaValue, Table, Userdata};
 	#[doc(no_inline)]
 	pub use crate::lua::{Lua, LuaError};
 	#[doc(no_inline)]

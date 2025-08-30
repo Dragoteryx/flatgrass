@@ -12,7 +12,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Status {
 	Suspended,
-	Running,
+	Normal,
 	Dead,
 }
 
@@ -77,11 +77,11 @@ impl Coroutine {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_coroutine(self);
-			let status = ffi::lua_status(lua.to_ptr());
+			let status = ffi::lua_status(self.to_ptr());
 			stack.pop_n(1);
 			match status {
 				ffi::LUA_YIELD => Status::Suspended,
-				0 => Status::Running,
+				0 => Status::Normal,
 				_ => Status::Dead,
 			}
 		})
@@ -108,6 +108,13 @@ impl Coroutine {
 					_ => Err(stack.pop_value_unchecked()),
 				}
 			})
+		}
+	}
+
+	pub fn values(&self) -> Values<'_> {
+		Values {
+			coroutine: self,
+			done: false,
 		}
 	}
 }
@@ -169,5 +176,33 @@ impl Ord for Coroutine {
 impl Hash for Coroutine {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.to_ptr().hash(state);
+	}
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Values<'c> {
+	coroutine: &'c Coroutine,
+	done: bool,
+}
+
+impl Iterator for Values<'_> {
+	type Item = Result<VecDeque<LuaValue>, LuaValue>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.done {
+			None
+		} else {
+			match self.coroutine.resume(()) {
+				Ok(Resume::Yield(vals)) => Some(Ok(vals)),
+				Ok(Resume::Return(vals)) => {
+					self.done = true;
+					Some(Ok(vals))
+				}
+				Err(err) => {
+					self.done = true;
+					Some(Err(err))
+				}
+			}
+		}
 	}
 }

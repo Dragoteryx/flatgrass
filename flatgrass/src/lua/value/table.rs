@@ -383,9 +383,9 @@ impl<K: ToLua, V: ToLua> FromIterator<(K, V)> for Table {
 	}
 }
 
-#[derive(Debug)]
-pub struct Ipairs<'a> {
-	table: &'a Table,
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Ipairs<'t> {
+	table: &'t Table,
 	key: usize,
 }
 
@@ -407,9 +407,9 @@ impl Iterator for Ipairs<'_> {
 	}
 }
 
-#[derive(Debug)]
-pub struct Pairs<'a> {
-	table: &'a Table,
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Pairs<'t> {
+	table: &'t Table,
 	key: LuaValue,
 }
 
