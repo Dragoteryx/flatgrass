@@ -91,11 +91,12 @@ impl Function {
 			let stack = lua.stack();
 			let size = stack.size();
 			stack.push_function(self);
-			let n = stack.push_many(args);
-			let res = ffi::lua_pcall(lua.to_ptr(), n, ffi::LUA_MULTRET, 0);
-			if res == 0 {
-				let mut values = VecDeque::new();
-				while stack.size() > size {
+			let n_args = stack.push_many(args);
+			let status = ffi::lua_pcall(lua.to_ptr(), n_args, ffi::LUA_MULTRET, 0);
+			if status == 0 {
+				let n_ret = (stack.size() - size) as usize;
+				let mut values = VecDeque::with_capacity(n_ret);
+				for _ in 0..n_ret {
 					values.push_front(stack.pop_value_unchecked());
 				}
 

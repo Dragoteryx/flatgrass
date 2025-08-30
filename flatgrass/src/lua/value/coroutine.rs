@@ -17,12 +17,6 @@ pub enum Status {
 	Dead,
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub enum Resume {
-	Return(VecDeque<LuaValue>),
-	Yield(VecDeque<LuaValue>),
-}
-
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Coroutine {
@@ -64,6 +58,16 @@ impl LuaStack<'_> {
 }
 
 impl Coroutine {
+	pub fn to_ptr(&self) -> *mut ffi::lua_State {
+		Lua::get(|lua| unsafe {
+			let stack = lua.stack();
+			stack.push_coroutine(self);
+			let state = ffi::lua_tothread(lua.to_ptr(), -1);
+			stack.pop_n(1);
+			state
+		})
+	}
+
 	pub fn is_suspended(&self) -> bool {
 		self.status() == Status::Suspended
 	}
@@ -78,16 +82,6 @@ impl Coroutine {
 
 	pub fn is_dead(&self) -> bool {
 		self.status() == Status::Dead
-	}
-
-	pub fn to_ptr(&self) -> *mut ffi::lua_State {
-		Lua::get(|lua| unsafe {
-			let stack = lua.stack();
-			stack.push_coroutine(self);
-			let state = ffi::lua_tothread(lua.to_ptr(), -1);
-			stack.pop_n(1);
-			state
-		})
 	}
 
 	pub fn status(&self) -> Status {
@@ -118,22 +112,19 @@ impl Coroutine {
 		})
 	}
 
-	pub fn resume<T: ToLuaIter>(&self, args: T) -> Result<Resume, LuaValue> {
+	pub fn resume<T: ToLuaIter>(&self, args: T) -> Result<VecDeque<LuaValue>, LuaValue> {
 		unsafe {
 			let stack = LuaStack::new(self.to_ptr());
-			let n = stack.push_many(args);
-			match ffi::lua_resume(stack.to_ptr(), n) {
-				status @ (0 | ffi::LUA_YIELD) => {
-					let mut values = VecDeque::new();
-					while stack.size() > 0 {
+			let n_args = stack.push_many(args);
+			match ffi::lua_resume(stack.to_ptr(), n_args) {
+				ffi::LUA_YIELD | 0 => {
+					let n_ret = stack.size() as usize;
+					let mut values = VecDeque::with_capacity(n_ret);
+					for _ in 0..n_ret {
 						values.push_front(stack.pop_value_unchecked());
 					}
 
-					if status == 0 {
-						Ok(Resume::Return(values))
-					} else {
-						Ok(Resume::Yield(values))
-					}
+					Ok(values)
 				}
 				_ => Err(stack.pop_value_unchecked()),
 			}
