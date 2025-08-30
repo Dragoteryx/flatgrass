@@ -90,7 +90,9 @@ impl Lua {
 
 	/// The associated Lua stack.
 	pub fn stack(&self) -> LuaStack<'_> {
-		LuaStack { lua: self }
+		unsafe {
+			LuaStack::new(self.to_ptr())
+		}
 	}
 
 	pub fn state_manager(&self) -> Option<&StateManager> {

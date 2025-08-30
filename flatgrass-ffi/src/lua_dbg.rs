@@ -17,24 +17,6 @@ pub struct lua_Debug {
 	i_ci: c_int,
 }
 
-impl Default for lua_Debug {
-	fn default() -> Self {
-		Self {
-			event: 0,
-			name: std::ptr::null(),
-			namewhat: std::ptr::null(),
-			what: std::ptr::null(),
-			source: std::ptr::null(),
-			currentline: 0,
-			nups: 0,
-			linedefined: 0,
-			lastlinedefined: 0,
-			short_src: [0; 128],
-			i_ci: 0,
-		}
-	}
-}
-
 /// See the Lua 5.1 manual: [`lua_Hook`](https://www.lua.org/manual/5.1/manual.html#lua_Hook)
 pub type lua_Hook = unsafe extern "C-unwind" fn(state: *mut lua_State, debug: *mut lua_Debug);
 

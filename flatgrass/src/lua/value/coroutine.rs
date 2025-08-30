@@ -12,6 +12,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Status {
 	Suspended,
+	Running,
 	Normal,
 	Dead,
 }
@@ -63,12 +64,16 @@ impl LuaStack<'_> {
 }
 
 impl Coroutine {
-	pub fn is_normal(&self) -> bool {
-		self.status() == Status::Normal
-	}
-
 	pub fn is_suspended(&self) -> bool {
 		self.status() == Status::Suspended
+	}
+
+	pub fn is_running(&self) -> bool {
+		self.status() == Status::Running
+	}
+
+	pub fn is_normal(&self) -> bool {
+		self.status() == Status::Normal
 	}
 
 	pub fn is_dead(&self) -> bool {
@@ -87,14 +92,28 @@ impl Coroutine {
 
 	pub fn status(&self) -> Status {
 		Lua::get(|lua| unsafe {
-			let stack = lua.stack();
-			stack.push_coroutine(self);
-			let status = ffi::lua_status(self.to_ptr());
-			stack.pop_n(1);
-			match status {
-				ffi::LUA_YIELD => Status::Suspended,
-				0 => Status::Normal,
-				_ => Status::Dead,
+			if lua.to_ptr() == self.to_ptr() {
+				Status::Running
+			} else {
+				let stack = lua.stack();
+				stack.push_coroutine(self);
+				let status = ffi::lua_status(self.to_ptr());
+				stack.pop_n(1);
+
+				match status {
+					ffi::LUA_YIELD => Status::Suspended,
+					0 => {
+						let mut dbg = std::mem::zeroed();
+						if ffi::lua_getstack(self.to_ptr(), 0, &mut dbg) != 0	{
+							Status::Normal
+						} else if ffi::lua_gettop(self.to_ptr()) == 0 {
+							Status::Dead
+						} else {
+							Status::Suspended
+						}
+					}
+					_ => Status::Dead
+				}
 			}
 		})
 	}
@@ -105,13 +124,13 @@ impl Coroutine {
 				let stack = lua.stack();
 				let n = stack.push_many(args);
 				match ffi::lua_resume(lua.to_ptr(), n) {
-					res @ (0 | ffi::LUA_YIELD) => {
+					status @ (0 | ffi::LUA_YIELD) => {
 						let mut values = VecDeque::new();
 						while stack.size() > 0 {
 							values.push_front(stack.pop_value_unchecked());
 						}
 
-						if res == 0 {
+						if status == 0 {
 							Ok(Resume::Return(values))
 						} else {
 							Ok(Resume::Yield(values))
@@ -123,10 +142,10 @@ impl Coroutine {
 		}
 	}
 
-	pub fn values(&self) -> Values<'_> {
-		Values {
+	pub fn values(&self) -> Iter<'_> {
+		Iter {
 			coroutine: self,
-			done: self.is_dead(),
+			dead: self.is_dead(),
 		}
 	}
 }
@@ -162,7 +181,9 @@ impl FromLua for Coroutine {
 
 impl Debug for Coroutine {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Coroutine <{:?}>", self.to_ptr())
+		f.debug_struct(&format!("Coroutine <{:?}>", self.to_ptr()))
+			.field("status", &self.status())
+			.finish()
 	}
 }
 
@@ -192,26 +213,26 @@ impl Hash for Coroutine {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Values<'c> {
+pub struct Iter<'c> {
 	coroutine: &'c Coroutine,
-	done: bool,
+	dead: bool,
 }
 
-impl Iterator for Values<'_> {
+impl Iterator for Iter<'_> {
 	type Item = VecDeque<LuaValue>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.done {
+		if self.dead {
 			None
 		} else {
 			match self.coroutine.resume(()) {
 				Ok(Resume::Yield(vals)) => Some(vals),
 				Ok(Resume::Return(vals)) => {
-					self.done = true;
+					self.dead = true;
 					Some(vals)
 				}
 				Err(_) => {
-					self.done = true;
+					self.dead = true;
 					None
 				}
 			}

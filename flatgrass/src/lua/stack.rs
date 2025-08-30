@@ -1,15 +1,18 @@
 use crate::ffi;
-use crate::lua::Lua;
 use crate::lua::traits::{ToLua, ToLuaIter};
 use crate::lua::value::userdata::LightUserdata;
 use crate::lua::value::{LuaType, LuaValue};
 use std::ffi::CStr;
+use std::marker::PhantomData;
+use std::ptr::NonNull;
+use std::fmt::{self, Debug};
 
 /// Provides a safe interface to the Lua stack.
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct LuaStack<'l> {
-	pub(super) lua: &'l Lua,
+	ptr: NonNull<ffi::lua_State>,
+	lua: PhantomData<&'l ()>,
 }
 
 /// An iterator over the values on the stack.
@@ -37,9 +40,18 @@ impl Iterator for LuaStackIter<'_> {
 }
 
 impl<'l> LuaStack<'l> {
+	pub unsafe fn new(ptr: *mut ffi::lua_State) -> Self {
+		unsafe {
+			Self {
+				ptr: NonNull::new_unchecked(ptr),
+				lua: PhantomData,
+			}
+		}
+	}
+
 	/// The raw Lua state associated with this stack.
 	pub fn to_ptr(&self) -> *mut ffi::lua_State {
-		self.lua.to_ptr()
+		self.ptr.as_ptr()
 	}
 
 	/// Iterate over the values on the stack.
@@ -406,10 +418,10 @@ impl<'l> LuaStack<'l> {
 	/// Pushes a raw Lua function on the stack with upvalues.
 	#[track_caller]
 	pub fn push_c_closure<T: ToLuaIter>(&self, func: ffi::lua_CFunction, upvalues: T) {
-		let nvalues = self.push_many(upvalues);
+		let n = self.push_many(upvalues);
 		if self.check_size(1) {
 			unsafe {
-				ffi::lua_pushcclosure(self.to_ptr(), func, nvalues);
+				ffi::lua_pushcclosure(self.to_ptr(), func, n);
 			}
 		} else {
 			stack_overflow!();
@@ -457,5 +469,14 @@ impl<'l> LuaStack<'l> {
 		} else {
 			stack_overflow!();
 		}
+	}
+}
+
+impl Debug for LuaStack<'_> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "LuaStack <{:?}> ", self.to_ptr())?;
+		f.debug_list()
+			.entries(self.iter())
+			.finish()
 	}
 }

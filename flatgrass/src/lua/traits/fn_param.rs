@@ -96,17 +96,17 @@ pub struct BadArgumentError<T> {
 impl<T> BadArgumentError<T> {
 	pub fn new(mut arg: i32, source: T) -> Self {
 		Lua::get(|lua| unsafe {
-			let mut debug = ffi::lua_Debug::default();
-			let name = match ffi::lua_getstack(lua.to_ptr(), 0, &mut debug) == 0 {
+			let mut dbg = std::mem::zeroed();
+			let name = match ffi::lua_getstack(lua.to_ptr(), 0, &mut dbg) == 0 {
 				true => None,
 				false => {
-					ffi::lua_getinfo(lua.to_ptr(), c"n".as_ptr(), &mut debug);
-					if ffi::libc::strcmp(debug.namewhat, c"method".as_ptr()) == 0 {
+					ffi::lua_getinfo(lua.to_ptr(), c"n".as_ptr(), &mut dbg);
+					if ffi::libc::strcmp(dbg.namewhat, c"method".as_ptr()) == 0 {
 						arg -= 1;
 					}
 
-					if !debug.name.is_null() {
-						let name = CStr::from_ptr(debug.name);
+					if !dbg.name.is_null() {
+						let name = CStr::from_ptr(dbg.name);
 						Some(name.to_string_lossy().to_string())
 					} else {
 						None
