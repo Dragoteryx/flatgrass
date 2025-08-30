@@ -201,20 +201,12 @@ impl Table {
 	}
 
 	pub fn len(&self) -> usize {
-		static LEN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-			let len = ffi::lua_objlen(state, 1);
-			ffi::lua_pushnumber(state, len as f64);
-			1
-		});
-
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
-			stack.push_c_function(LEN);
 			stack.push_table(self);
-			match ffi::lua_pcall(lua.to_ptr(), 1, 1, 0) {
-				0 => stack.pop_number_unchecked() as usize,
-				_ => 0,
-			}
+			let len = ffi::lua_objlen(lua.to_ptr(), -1);
+			stack.pop_n(1);
+			len
 		})
 	}
 
