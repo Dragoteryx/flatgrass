@@ -403,6 +403,20 @@ impl<'l> LuaStack<'l> {
 		}
 	}
 
+	/// Pushes a new coroutine on the stack and initializes it.
+	#[track_caller]
+	pub fn push_new_coroutine(&self, func: ffi::lua_CFunction) -> *mut ffi::lua_State {
+		if self.check_size(1) {
+			unsafe {
+				let ptr = ffi::lua_newthread(self.to_ptr());
+				Self::new(ptr).push_c_function(func);
+				ptr
+			}
+		} else {
+			stack_overflow!();
+		}
+	}
+
 	/// Pushes a raw Lua function on the stack.
 	#[track_caller]
 	pub fn push_c_function(&self, func: ffi::lua_CFunction) {

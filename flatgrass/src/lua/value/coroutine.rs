@@ -58,6 +58,14 @@ impl LuaStack<'_> {
 }
 
 impl Coroutine {
+	pub fn new(func: ffi::lua_CFunction) -> Self {
+		Lua::get(|lua| unsafe {
+			let stack = lua.stack();
+			stack.push_new_coroutine(func);
+			stack.pop_coroutine_unchecked()
+		})
+	}
+
 	pub fn to_ptr(&self) -> *mut ffi::lua_State {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();

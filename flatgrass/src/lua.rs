@@ -55,9 +55,9 @@ impl Lua {
 			let old_ptr = lua.ptr.replace(ptr);
 			match catch_unwind(AssertUnwindSafe(|| func(lua))) {
 				Err(_) => abort(),
-				Ok(res) => {
+				Ok(value) => {
 					lua.ptr.set(old_ptr);
-					res
+					value
 				}
 			}
 		})
