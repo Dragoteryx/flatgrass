@@ -1,12 +1,13 @@
-/// Create a new function from the given Rust function.
+/// Returns a raw Lua function containing glue code to call the given Rust function from Lua.\
+/// This can only be used on functions annotated with `#[flatgrass::function]`.
 #[doc(hidden)]
 #[macro_export]
-macro_rules! func {
+macro_rules! cfunction {
 	($func:ident) => {
-		$crate::lua::value::Function::new($func::to_lua())
+		$func::cfunction()
 	};
 	($func:ident :: <$($ty:ty),* $(,)?>) => {
-		$crate::lua::value::Function::new($func::to_lua::<$($ty),*>())
+		$func::cfunction::<$($ty),*>()
 	};
 }
 

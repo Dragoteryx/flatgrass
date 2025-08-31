@@ -1,4 +1,4 @@
-use crate::lua::value::{LightUserdata, LuaString, LuaValue, Table};
+use crate::lua::value::{LuaString, LuaValue, Table};
 use std::collections::*;
 use std::convert::Infallible;
 use std::ffi::*;
@@ -159,12 +159,6 @@ impl<L: ToLua, R: ToLua> ToLua for Either<L, R> {
 impl ToLua for bool {
 	fn to_lua_by_ref(&self) -> LuaValue {
 		LuaValue::Bool(*self)
-	}
-}
-
-impl ToLua for LightUserdata {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		LuaValue::LightUserdata(*self)
 	}
 }
 

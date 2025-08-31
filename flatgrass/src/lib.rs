@@ -28,5 +28,5 @@ pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::lua::{Lua, LuaError};
 	#[doc(no_inline)]
-	pub use crate::lua::{func, table};
+	pub use crate::lua::{cfunction, table};
 }

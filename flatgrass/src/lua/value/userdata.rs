@@ -78,6 +78,12 @@ impl ToLua for Userdata {
 	}
 }
 
+impl ToLua for LightUserdata {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		LuaValue::LightUserdata(*self)
+	}
+}
+
 impl FromLua for Userdata {
 	type Err = FromLuaError<'static>;
 
@@ -94,6 +100,25 @@ impl FromLua for Userdata {
 
 	fn no_value() -> Result<Self, Self::Err> {
 		Err(FromLuaError::expected_type(LuaType::Userdata))
+	}
+}
+
+impl FromLua for LightUserdata {
+	type Err = FromLuaError<'static>;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+		if let LuaValue::LightUserdata(lud) = value {
+			Ok(lud)
+		} else {
+			Err(FromLuaError::expected_and_got_type(
+				LuaType::LightUserdata,
+				value.get_type(),
+			))
+		}
+	}
+
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::expected_type(LuaType::LightUserdata))
 	}
 }
 

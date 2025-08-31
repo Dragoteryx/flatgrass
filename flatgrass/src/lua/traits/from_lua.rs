@@ -1,4 +1,4 @@
-use crate::lua::value::{LightUserdata, LuaString, LuaType, LuaValue};
+use crate::lua::value::{LuaString, LuaType, LuaValue};
 use std::borrow::Cow;
 use std::convert::Infallible;
 use std::error::Error;
@@ -166,25 +166,6 @@ impl FromLua for f64 {
 
 	fn no_value() -> Result<Self, Self::Err> {
 		Err(FromLuaError::expected_type(LuaType::Number))
-	}
-}
-
-impl FromLua for LightUserdata {
-	type Err = FromLuaError<'static>;
-
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::LightUserdata(lud) = value {
-			Ok(lud)
-		} else {
-			Err(FromLuaError::expected_and_got_type(
-				LuaType::LightUserdata,
-				value.get_type(),
-			))
-		}
-	}
-
-	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::LightUserdata))
 	}
 }
 

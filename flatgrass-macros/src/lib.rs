@@ -75,7 +75,7 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 #[proc_macro_derive(ToLua)]
-pub fn to_lua(input: TokenStream) -> TokenStream {
+pub fn derive_to_lua(input: TokenStream) -> TokenStream {
 	let input = syn::parse_macro_input!(input as syn::DeriveInput);
 	derive::to_lua(input).into()
 }

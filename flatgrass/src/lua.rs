@@ -12,7 +12,7 @@ macro_rules! stack_overflow {
 }
 
 #[doc(inline)]
-pub use crate::{func, table};
+pub use crate::{cfunction, table};
 mod macros;
 
 pub mod stack;

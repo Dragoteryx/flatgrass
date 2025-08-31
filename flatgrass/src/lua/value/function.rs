@@ -118,6 +118,12 @@ impl ToLua for Function {
 	}
 }
 
+impl ToLua for ffi::lua_CFunction {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		Function::new(*self).to_lua()
+	}
+}
+
 impl FromLua for Function {
 	type Err = FromLuaError<'static>;
 
