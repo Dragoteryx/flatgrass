@@ -3,9 +3,9 @@ use crate::lua::traits::{ToLua, ToLuaIter};
 use crate::lua::value::userdata::LightUserdata;
 use crate::lua::value::{LuaType, LuaValue};
 use std::ffi::CStr;
+use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
-use std::fmt::{self, Debug};
 
 /// Provides a safe interface to the Lua stack.
 #[repr(transparent)]
@@ -475,8 +475,6 @@ impl<'l> LuaStack<'l> {
 impl Debug for LuaStack<'_> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "LuaStack <{:?}> ", self.to_ptr())?;
-		f.debug_list()
-			.entries(self.iter())
-			.finish()
+		f.debug_list().entries(self.iter()).finish()
 	}
 }

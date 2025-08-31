@@ -98,7 +98,7 @@ impl Coroutine {
 					ffi::LUA_YIELD => Status::Suspended,
 					0 => {
 						let mut dbg = std::mem::zeroed();
-						if ffi::lua_getstack(self.to_ptr(), 0, &mut dbg) != 0	{
+						if ffi::lua_getstack(self.to_ptr(), 0, &mut dbg) != 0 {
 							Status::Normal
 						} else if ffi::lua_gettop(self.to_ptr()) == 0 {
 							Status::Dead
@@ -106,7 +106,7 @@ impl Coroutine {
 							Status::Suspended
 						}
 					}
-					_ => Status::Dead
+					_ => Status::Dead,
 				}
 			}
 		})
