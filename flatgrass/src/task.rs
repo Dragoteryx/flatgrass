@@ -1,20 +1,10 @@
-use std::time::Duration;
-
+use crate::lua::Lua;
 pub use crtn::executor::JoinHandle;
-
-#[inline]
-pub fn poll() -> usize {
-	crtn::executor::poll()
-}
-
-#[inline]
-pub fn shutdown() {
-	crtn::executor::drop_tasks();
-}
+use std::time::Duration;
 
 #[inline]
 pub fn spawn<F: IntoFuture + 'static>(future: F) -> JoinHandle<F::Output> {
-	crtn::executor::spawn(future)
+	Lua::get(|lua| lua.spawn(future))
 }
 
 #[inline]
@@ -23,12 +13,11 @@ where
 	F: FnOnce() -> T + Send + 'static,
 	T: Send + 'static,
 {
-	crtn::executor::spawn(crtn::future::blocking(func))
+	Lua::get(|lua| lua.spawn_blocking(func))
 }
 
 #[inline]
 pub async fn sleep(duration: Duration) {
-	// todo: call timer.Simple instead
 	spawn_blocking(move || std::thread::sleep(duration)).await;
 }
 

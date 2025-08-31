@@ -1,8 +1,8 @@
 /// Creates a raw Lua function using the closure syntax.\
 /// This isn't an actual closure, hence you cannot capture variables.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// let func: lua_CFunction = raw_function!(|state| unsafe {
 ///     let a = ffi::lua_tonumber(state, 1);

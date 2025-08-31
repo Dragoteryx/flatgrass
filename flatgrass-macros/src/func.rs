@@ -155,7 +155,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 
 			let call = match &func.sig.asyncness {
 				Some(_) => quote_spanned! { ret_span =>
-					::flatgrass::task::spawn(async move { let _ = #ident #generics_turbofish (#(#args),*).await; });
+					__fg_lua.spawn(#ident #generics_turbofish (#(#args),*));
 					::core::option::Option::Some(::flatgrass::lua::traits::Return::Values(0))
 				},
 				None => quote_spanned! { ret_span =>

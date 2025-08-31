@@ -4,6 +4,11 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
 use std::ptr::null_mut;
 
+#[cfg(feature = "async")]
+use crate::task::JoinHandle;
+#[cfg(feature = "async")]
+use crtn::executor::Executor;
+
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
 	() => {
@@ -34,6 +39,8 @@ thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
 		state_manager: OnceCell::default(),
+		#[cfg(feature = "async")]
+		executor: Executor::new(),
 	};
 }
 
@@ -42,6 +49,8 @@ thread_local! {
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
 	state_manager: OnceCell<StateManager>,
+	#[cfg(feature = "async")]
+	executor: Executor<'static>,
 }
 
 impl Lua {
@@ -117,6 +126,22 @@ impl Lua {
 		}
 	}
 
+	#[inline]
+	#[cfg(feature = "async")]
+	pub fn spawn<F: IntoFuture + 'static>(&self, future: F) -> JoinHandle<F::Output> {
+		self.executor.spawn(future)
+	}
+
+	#[inline]
+	#[cfg(feature = "async")]
+	pub fn spawn_blocking<F, T>(&self, func: F) -> JoinHandle<T>
+	where
+		F: FnOnce() -> T + Send + 'static,
+		T: Send + 'static,
+	{
+		self.spawn(crtn::future::blocking(func))
+	}
+
 	/// Forces garbage collection.
 	pub fn gc_collect(&self) {
 		unsafe {
@@ -183,15 +208,15 @@ impl Lua {
 	#[doc(hidden)]
 	pub fn __fg_entry(&self) {
 		#[cfg(feature = "async")]
-		{
-			if let LuaValue::Table(timer) = value::Table::globals().raw_get("timer") {
-				if let LuaValue::Function(create) = timer.raw_get("Create") {
-					let id = format!("__fg_poll_{:p}", self);
-					let _ = create.call((id, 0.0, 0.0, ffi::raw_function!(|state| unsafe {
-						Lua::init(state, |_| crate::task::poll());
-						0
-					})));
-				}
+		if let LuaValue::Table(timer) = value::Table::globals().raw_get("timer") {
+			if let LuaValue::Function(create) = timer.raw_get("Create") {
+				static FUNC: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
+					Lua::init(state, |lua| lua.executor.poll());
+					0
+				});
+
+				let id = format!("__fg_poll_{:p}", self);
+				let _ = create.call((id, 0.0, 0.0, FUNC));
 			}
 		}
 	}
@@ -199,8 +224,6 @@ impl Lua {
 	#[doc(hidden)]
 	pub fn __fg_exit(&self) {
 		#[cfg(feature = "async")]
-		{
-			crate::task::shutdown();
-		}
+		self.executor.drop_tasks();
 	}
 }
