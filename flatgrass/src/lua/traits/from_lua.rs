@@ -1,8 +1,7 @@
-use crate::lua::value::{LuaString, LuaType, LuaValue};
+use crate::lua::value::{LuaType, LuaValue};
 use std::borrow::Cow;
 use std::convert::Infallible;
 use std::error::Error;
-use std::ffi::CString;
 use std::fmt::{self, Display};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -166,30 +165,6 @@ impl FromLua for f64 {
 
 	fn no_value() -> Result<Self, Self::Err> {
 		Err(FromLuaError::expected_type(LuaType::Number))
-	}
-}
-
-impl FromLua for String {
-	type Err = FromLuaError<'static>;
-
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		LuaString::from_lua(value).map(|lstr| lstr.to_string())
-	}
-
-	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::String))
-	}
-}
-
-impl FromLua for CString {
-	type Err = FromLuaError<'static>;
-
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		LuaString::from_lua(value).map(|lstr| lstr.to_c_str().to_owned())
-	}
-
-	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::String))
 	}
 }
 

@@ -94,6 +94,30 @@ impl ToLua for LuaString {
 	}
 }
 
+impl ToLua for str {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		LuaString::from(self).to_lua()
+	}
+}
+
+impl ToLua for String {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		self.as_str().to_lua()
+	}
+}
+
+impl ToLua for CStr {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		LuaString::from(self).to_lua()
+	}
+}
+
+impl ToLua for CString {
+	fn to_lua_by_ref(&self) -> LuaValue {
+		self.as_c_str().to_lua()
+	}
+}
+
 impl FromLua for LuaString {
 	type Err = FromLuaError<'static>;
 
@@ -106,6 +130,30 @@ impl FromLua for LuaString {
 				value.get_type(),
 			))
 		}
+	}
+
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::expected_type(LuaType::String))
+	}
+}
+
+impl FromLua for String {
+	type Err = FromLuaError<'static>;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+		LuaString::from_lua(value).map(|lstr| lstr.to_string())
+	}
+
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::expected_type(LuaType::String))
+	}
+}
+
+impl FromLua for CString {
+	type Err = FromLuaError<'static>;
+
+	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+		LuaString::from_lua(value).map(|lstr| lstr.to_c_str().to_owned())
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {

@@ -1,7 +1,6 @@
-use crate::lua::value::{LuaString, LuaValue, Table};
+use crate::lua::value::{LuaValue, Table};
 use std::collections::*;
 use std::convert::Infallible;
-use std::ffi::*;
 use std::marker::{PhantomData, PhantomPinned};
 use std::num::NonZero;
 use std::rc::Rc;
@@ -159,30 +158,6 @@ impl<L: ToLua, R: ToLua> ToLua for Either<L, R> {
 impl ToLua for bool {
 	fn to_lua_by_ref(&self) -> LuaValue {
 		LuaValue::Bool(*self)
-	}
-}
-
-impl ToLua for str {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		LuaString::from(self).to_lua()
-	}
-}
-
-impl ToLua for String {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		self.as_str().to_lua()
-	}
-}
-
-impl ToLua for CStr {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		LuaString::from(self).to_lua()
-	}
-}
-
-impl ToLua for CString {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		self.as_c_str().to_lua()
 	}
 }
 
