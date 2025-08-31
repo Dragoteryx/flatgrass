@@ -29,5 +29,10 @@ where
 #[inline]
 pub async fn sleep(duration: Duration) {
 	// todo: call timer.Simple instead
-	spawn_blocking(move || std::thread::sleep(duration)).await
+	spawn_blocking(move || std::thread::sleep(duration)).await;
+}
+
+#[inline]
+pub async fn sleep_ms(ms: u64) {
+	sleep(Duration::from_millis(ms)).await;
 }
