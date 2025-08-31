@@ -7,6 +7,9 @@ edition = "2024"
 proc-macro = true
 doctest = false
 
+[features]
+async = []
+
 [dependencies]
 proc-macro2 = "1"
 quote = "1"

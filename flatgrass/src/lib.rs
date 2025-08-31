@@ -15,6 +15,10 @@ pub mod lua;
 /// Garry's Mod types and libraries.
 pub mod gm;
 
+/// Asynchronous programming utilities.
+#[cfg(feature = "async")]
+pub mod task;
+
 /// Re-exports commonly used macros and types.
 pub mod prelude {
 	#[doc(no_inline)]

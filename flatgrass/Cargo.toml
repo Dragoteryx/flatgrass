@@ -12,6 +12,10 @@ default = ["macros"]
 macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
 either = ["dep:either"]
+async = [
+	"flatgrass-macros?/async",
+	"dep:crtn"
+]
 
 [dependencies.flatgrass-ffi]
 path = "../flatgrass-ffi"
@@ -27,6 +31,11 @@ optional = true
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+optional = true
+
+[dependencies.crtn]
+git = "https://github.com/Dragoteryx/crtn.git"
+features = ["executor"]
 optional = true
 
 [build-dependencies]

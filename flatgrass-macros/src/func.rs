@@ -125,9 +125,11 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 	}
 
 	if let Some(asyncness) = &func.sig.asyncness {
-		errors.push(quote_spanned! { asyncness.span =>
-			compile_error!("Lua functions cannot be async (yet)")
-		});
+		if cfg!(not(feature = "async")) {
+			errors.push(quote_spanned! { asyncness.span =>
+				compile_error!("async Lua functions require the `async` feature")
+			});
+		}
 	}
 
 	let body = match errors.is_empty() {
@@ -152,7 +154,10 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			};
 
 			let call = match &func.sig.asyncness {
-				Some(_) => quote_spanned! { ret_span => },
+				Some(_) => quote_spanned! { ret_span =>
+					::flatgrass::task::spawn(async move { let _ = #ident #generics_turbofish (#(#args),*).await; });
+					::core::option::Option::Some(::flatgrass::lua::traits::Return::Values(0))
+				},
 				None => quote_spanned! { ret_span =>
 					match ::flatgrass::lua::traits::LuaFnReturn::lua_fn_return(#ident #generics_turbofish (#(#args),*), __fg_lua) {
 						::core::result::Result::Ok(::flatgrass::lua::traits::Return::Values(values)) =>

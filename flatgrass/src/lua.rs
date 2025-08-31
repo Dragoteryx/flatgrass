@@ -181,8 +181,26 @@ impl Lua {
 	}
 
 	#[doc(hidden)]
-	pub fn __fg_entry(&self) {}
+	pub fn __fg_entry(&self) {
+		#[cfg(feature = "async")]
+		{
+			if let LuaValue::Table(timer) = value::Table::globals().raw_get("timer") {
+				if let LuaValue::Function(create) = timer.raw_get("Create") {
+					let id = format!("__fg_poll_{:p}", self);
+					let _ = create.call((id, 0.0, 0.0, ffi::raw_function!(|state| unsafe {
+						Lua::init(state, |_| crate::task::poll());
+						0
+					})));
+				}
+			}
+		}
+	}
 
 	#[doc(hidden)]
-	pub fn __fg_exit(&self) {}
+	pub fn __fg_exit(&self) {
+		#[cfg(feature = "async")]
+		{
+			crate::task::shutdown();
+		}
+	}
 }
