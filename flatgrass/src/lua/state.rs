@@ -1,3 +1,4 @@
+use crate::lua::Lua;
 use std::any::type_name;
 use std::any::{Any, TypeId};
 use std::cell::{Ref, RefCell, RefMut};
@@ -41,6 +42,19 @@ pub struct State<'l, T> {
 	inner: RefMut<'l, T>,
 }
 
+impl<T: 'static> State<'_, T> {
+	pub fn try_get<U>(func: impl FnOnce(Option<&mut T>) -> U) -> U {
+		Lua::try_get(|lua| {
+			let mut state = lua.and_then(|lua| lua.state::<T>());
+			func(state.as_deref_mut())
+		})
+	}
+
+	pub fn get<U>(func: impl FnOnce(&mut T) -> U) -> U {
+		Self::try_get(|state| func(state.expect("unitialized state")))
+	}
+}
+
 impl<T> Deref for State<'_, T> {
 	type Target = T;
 
@@ -59,6 +73,19 @@ impl<T> DerefMut for State<'_, T> {
 #[derive(Debug)]
 pub struct StateRef<'l, T> {
 	inner: Ref<'l, T>,
+}
+
+impl<T: 'static> StateRef<'_, T> {
+	pub fn try_get<U>(func: impl FnOnce(Option<&T>) -> U) -> U {
+		Lua::try_get(|lua| {
+			let state = lua.and_then(|lua| lua.state_ref::<T>());
+			func(state.as_deref())
+		})
+	}
+
+	pub fn get<U>(func: impl FnOnce(&T) -> U) -> U {
+		Self::try_get(|state| func(state.expect("unitialized state")))
+	}
 }
 
 impl<T> Deref for StateRef<'_, T> {

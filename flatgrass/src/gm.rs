@@ -15,28 +15,32 @@ pub enum Realm {
 }
 
 impl Realm {
-	pub fn get() -> Self {
-		let globals = Table::globals();
-		let server = globals.raw_get("SERVER").truthy();
-		let client = globals.raw_get("CLIENT").truthy();
-		let menu = globals.raw_get("MENU_DLL").truthy();
-		match (server, client, menu) {
-			(true, false, false) => Self::Server,
-			(false, true, false) => Self::Client,
-			(false, false, true) => Self::Menu,
-			_ => panic!("invalid realm"),
+	pub fn get() -> Option<Self> {
+		if Lua::is_initialized() {
+			let globals = Table::globals();
+			let server = globals.raw_get("SERVER").truthy();
+			let client = globals.raw_get("CLIENT").truthy();
+			let menu = globals.raw_get("MENU_DLL").truthy();
+			match (server, client, menu) {
+				(true, false, false) => Some(Self::Server),
+				(false, true, false) => Some(Self::Client),
+				(false, false, true) => Some(Self::Menu),
+				_ => None,
+			}
+		} else {
+			None
 		}
 	}
 
 	pub fn is_server() -> bool {
-		Self::get() == Self::Server
+		Self::get() == Some(Self::Server)
 	}
 
 	pub fn is_client() -> bool {
-		Self::get() == Self::Client
+		Self::get() == Some(Self::Client)
 	}
 
 	pub fn is_menu() -> bool {
-		Self::get() == Self::Menu
+		Self::get() == Some(Self::Menu)
 	}
 }

@@ -92,6 +92,11 @@ impl Lua {
 		Self::try_get(|lua| func(lua.expect("a Lua state")))
 	}
 
+	/// Checks if the Lua state is initialized.
+	pub fn is_initialized() -> bool {
+		Lua::try_get(|lua| lua.is_some())
+	}
+
 	/// The associated raw Lua state.
 	pub fn to_ptr(&self) -> *mut ffi::lua_State {
 		self.ptr.get()
