@@ -1,6 +1,6 @@
 use crate::lua::Lua;
 use crate::lua::traits::ToLua;
-use crate::lua::value::LuaValue;
+use crate::lua::value::Value;
 use std::error::Error;
 use std::fmt::{self, Display};
 
@@ -44,7 +44,7 @@ impl<T: ToString> Display for LuaError<T> {
 }
 
 impl<T: ToString> ToLua for LuaError<T> {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.to_string().to_lua()
 	}
 }

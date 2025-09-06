@@ -1,13 +1,20 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::stack::LuaStack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaIter};
-use crate::lua::value::{LuaReference, LuaType, LuaValue};
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaMany};
+use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
-use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
+use std::pin::Pin;
 use std::rc::Rc;
+use std::task::{Context, Poll};
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub enum Resume {
+	Yield(Tuple),
+	Return(Tuple),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Status {
@@ -20,16 +27,16 @@ pub enum Status {
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Coroutine {
-	reference: Rc<LuaReference>,
+	reference: Rc<Reference>,
 }
 
-impl LuaStack<'_> {
+impl Stack<'_> {
 	pub fn push_coroutine(&self, func: &Coroutine) {
 		self.push_reference(&func.reference);
 	}
 
 	pub fn pop_coroutine(&self) -> Option<Coroutine> {
-		if self.get_type(-1) == Some(LuaType::Coroutine) {
+		if self.get_type(-1) == Some(Type::Coroutine) {
 			unsafe { Some(self.pop_coroutine_unchecked()) }
 		} else {
 			None
@@ -43,7 +50,7 @@ impl LuaStack<'_> {
 	}
 
 	pub fn get_coroutine(&self, idx: i32) -> Option<Coroutine> {
-		if self.get_type(idx) == Some(LuaType::Coroutine) {
+		if self.get_type(idx) == Some(Type::Coroutine) {
 			unsafe { Some(self.get_coroutine_unchecked(idx)) }
 		} else {
 			None
@@ -120,19 +127,23 @@ impl Coroutine {
 		})
 	}
 
-	pub fn resume<T: ToLuaIter>(&self, args: T) -> Result<VecDeque<LuaValue>, LuaValue> {
+	pub fn resume<T: ToLuaMany>(&self, args: T) -> Result<Resume, Value> {
 		unsafe {
-			let stack = LuaStack::new(self.to_ptr());
+			let stack = Stack::new(self.to_ptr());
 			let n_args = stack.push_many(args);
 			match ffi::lua_resume(stack.to_ptr(), n_args) {
-				ffi::LUA_YIELD | 0 => {
+				status @ (ffi::LUA_YIELD | 0) => {
 					let n_ret = stack.size() as usize;
-					let mut values = VecDeque::with_capacity(n_ret);
+					let mut values = Tuple::with_capacity(n_ret);
 					for _ in 0..n_ret {
 						values.push_front(stack.pop_value_unchecked());
 					}
 
-					Ok(values)
+					if status == ffi::LUA_YIELD {
+						Ok(Resume::Yield(values))
+					} else {
+						Ok(Resume::Return(values))
+					}
 				}
 				_ => Err(stack.pop_value_unchecked()),
 			}
@@ -141,31 +152,31 @@ impl Coroutine {
 }
 
 impl ToLua for Coroutine {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.clone().to_lua()
 	}
 
-	fn to_lua(self) -> LuaValue {
-		LuaValue::Coroutine(self)
+	fn to_lua(self) -> Value {
+		Value::Coroutine(self)
 	}
 }
 
 impl FromLua for Coroutine {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Coroutine(cor) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Coroutine(cor) = value {
 			Ok(cor)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Coroutine,
+				Type::Coroutine,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Coroutine))
+		Err(FromLuaError::expected_type(Type::Coroutine))
 	}
 }
 
@@ -199,5 +210,31 @@ impl Ord for Coroutine {
 impl Hash for Coroutine {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.to_ptr().hash(state);
+	}
+}
+
+impl Iterator for Coroutine {
+	type Item = Result<Resume, Value>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		match self.is_dead() {
+			false => Some(self.resume(())),
+			true => None,
+		}
+	}
+}
+
+impl Future for Coroutine {
+	type Output = Result<Tuple, Value>;
+
+	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+		match self.resume(()) {
+			Ok(Resume::Return(values)) => Poll::Ready(Ok(values)),
+			Err(err) => Poll::Ready(Err(err)),
+			Ok(Resume::Yield(_)) => {
+				cx.waker().wake_by_ref();
+				Poll::Pending
+			}
+		}
 	}
 }

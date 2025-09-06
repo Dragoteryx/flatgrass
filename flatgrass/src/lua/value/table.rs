@@ -1,8 +1,8 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::stack::LuaStack;
+use crate::lua::stack::Stack;
 use crate::lua::traits::{FromLua, FromLuaError, ToLua};
-use crate::lua::value::{LuaReference, LuaType, LuaValue};
+use crate::lua::value::{Reference, Type, Value};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -13,16 +13,16 @@ use std::rc::Rc;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Table {
-	reference: Rc<LuaReference>,
+	reference: Rc<Reference>,
 }
 
-impl LuaStack<'_> {
+impl Stack<'_> {
 	pub fn push_table(&self, tbl: &Table) {
 		self.push_reference(&tbl.reference);
 	}
 
 	pub fn pop_table(&self) -> Option<Table> {
-		if self.get_type(-1) == Some(LuaType::Table) {
+		if self.get_type(-1) == Some(Type::Table) {
 			unsafe { Some(self.pop_table_unchecked()) }
 		} else {
 			None
@@ -36,7 +36,7 @@ impl LuaStack<'_> {
 	}
 
 	pub fn get_table(&self, idx: i32) -> Option<Table> {
-		if self.get_type(idx) == Some(LuaType::Table) {
+		if self.get_type(idx) == Some(Type::Table) {
 			Some(unsafe { self.get_table_unchecked(idx) })
 		} else {
 			None
@@ -81,10 +81,10 @@ impl Table {
 		})
 	}
 
-	pub fn raw_get<K: ToLua>(&self, key: K) -> LuaValue {
+	pub fn raw_get<K: ToLua>(&self, key: K) -> Value {
 		let key = key.to_lua();
 		if key.is_nil() {
-			LuaValue::Nil
+			Value::Nil
 		} else {
 			Lua::get(|lua| unsafe {
 				let stack = lua.stack();
@@ -120,18 +120,18 @@ impl Table {
 		self.raw_set(self.len() + 1, value);
 	}
 
-	pub fn raw_remove<K: ToLua>(&self, key: K) -> LuaValue {
+	pub fn raw_remove<K: ToLua>(&self, key: K) -> Value {
 		let key = key.to_lua();
 		let value = self.raw_get(&key);
-		self.raw_set(key, LuaValue::Nil);
+		self.raw_set(key, Value::Nil);
 		value
 	}
 
-	pub fn raw_pop(&self) -> LuaValue {
+	pub fn raw_pop(&self) -> Value {
 		self.raw_remove(self.len())
 	}
 
-	pub fn get<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
+	pub fn get<K: ToLua>(&self, key: K) -> Result<Value, Value> {
 		static GET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			ffi::lua_gettable(state, 1);
 			1
@@ -139,7 +139,7 @@ impl Table {
 
 		let key = key.to_lua();
 		if key.is_nil() {
-			Ok(LuaValue::Nil)
+			Ok(Value::Nil)
 		} else {
 			Lua::get(|lua| {
 				let stack = lua.stack();
@@ -156,11 +156,11 @@ impl Table {
 		}
 	}
 
-	pub fn has<K: ToLua>(&self, key: K) -> Result<bool, LuaValue> {
+	pub fn has<K: ToLua>(&self, key: K) -> Result<bool, Value> {
 		self.get(key).map(|value| !value.is_nil())
 	}
 
-	pub fn set<K: ToLua, V: ToLua>(&self, key: K, value: V) -> Result<(), LuaValue> {
+	pub fn set<K: ToLua, V: ToLua>(&self, key: K, value: V) -> Result<(), Value> {
 		static SET: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			ffi::lua_settable(state, 1);
 			0
@@ -186,17 +186,17 @@ impl Table {
 		}
 	}
 
-	pub fn push<V: ToLua>(&self, value: V) -> Result<(), LuaValue> {
+	pub fn push<V: ToLua>(&self, value: V) -> Result<(), Value> {
 		self.set(self.len() + 1, value)
 	}
 
-	pub fn remove<K: ToLua>(&self, key: K) -> Result<LuaValue, LuaValue> {
+	pub fn remove<K: ToLua>(&self, key: K) -> Result<Value, Value> {
 		let value = self.get(&key)?;
-		self.set(key, LuaValue::Nil)?;
+		self.set(key, Value::Nil)?;
 		Ok(value)
 	}
 
-	pub fn pop(&self) -> Result<LuaValue, LuaValue> {
+	pub fn pop(&self) -> Result<Value, Value> {
 		self.remove(self.len())
 	}
 
@@ -210,7 +210,7 @@ impl Table {
 		})
 	}
 
-	pub fn next<K: ToLua>(&self, key: K) -> Option<(LuaValue, LuaValue)> {
+	pub fn next<K: ToLua>(&self, key: K) -> Option<(Value, Value)> {
 		let key = key.to_lua();
 		if !key.is_nil() && !self.raw_has(&key) {
 			None
@@ -236,7 +236,7 @@ impl Table {
 	}
 
 	pub fn is_empty(&self) -> bool {
-		self.next(LuaValue::Nil).is_none()
+		self.next(Value::Nil).is_none()
 	}
 
 	pub fn is_sequential(&self) -> bool {
@@ -253,7 +253,7 @@ impl Table {
 	pub fn pairs(&self) -> Pairs<'_> {
 		Pairs {
 			table: self,
-			key: LuaValue::Nil,
+			key: Value::Nil,
 		}
 	}
 
@@ -290,31 +290,31 @@ impl Table {
 }
 
 impl ToLua for Table {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.clone().to_lua()
 	}
 
-	fn to_lua(self) -> LuaValue {
-		LuaValue::Table(self)
+	fn to_lua(self) -> Value {
+		Value::Table(self)
 	}
 }
 
 impl FromLua for Table {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Table(tbl) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Table(tbl) = value {
 			Ok(tbl)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Table,
+				Type::Table,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Table))
+		Err(FromLuaError::expected_type(Type::Table))
 	}
 }
 
@@ -382,7 +382,7 @@ pub struct Ipairs<'t> {
 }
 
 impl Iterator for Ipairs<'_> {
-	type Item = (usize, LuaValue);
+	type Item = (usize, Value);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.table.raw_get(self.key).not_nil() {
@@ -402,11 +402,11 @@ impl Iterator for Ipairs<'_> {
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Pairs<'t> {
 	table: &'t Table,
-	key: LuaValue,
+	key: Value,
 }
 
 impl Iterator for Pairs<'_> {
-	type Item = (LuaValue, LuaValue);
+	type Item = (Value, Value);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let key = std::mem::take(&mut self.key);

@@ -43,17 +43,17 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 					quote! {
 						#[automatically_derived]
 						impl #impl_generics ::flatgrass::lua::traits::ToLua for #ident #ty_generics #where_clause {
-							fn to_lua_by_ref(&self) -> ::flatgrass::lua::value::LuaValue {
-								::flatgrass::lua::value::LuaValue::Table(::flatgrass::lua::table![
+							fn to_lua_by_ref(&self) -> ::flatgrass::lua::value::Value {
+								::flatgrass::lua::value::Value::Table(::flatgrass::lua::table![
 									#(#fields_to_lua_by_ref,)*
 								])
 							}
 
-							fn to_lua(self) -> ::flatgrass::lua::value::LuaValue
+							fn to_lua(self) -> ::flatgrass::lua::value::Value
 							where
 								Self: Sized,
 							{
-								::flatgrass::lua::value::LuaValue::Table(::flatgrass::lua::table![
+								::flatgrass::lua::value::Value::Table(::flatgrass::lua::table![
 									#(#fields_to_lua,)*
 								])
 							}
@@ -78,17 +78,17 @@ pub fn to_lua(mut input: DeriveInput) -> TokenStream {
 					quote! {
 						#[automatically_derived]
 						impl #impl_generics ::flatgrass::lua::traits::ToLua for #ident #ty_generics #where_clause {
-							fn to_lua_by_ref(&self) -> ::flatgrass::lua::value::LuaValue {
-								::flatgrass::lua::value::LuaValue::Table(::flatgrass::lua::table! {
+							fn to_lua_by_ref(&self) -> ::flatgrass::lua::value::Value {
+								::flatgrass::lua::value::Value::Table(::flatgrass::lua::table! {
 									#(#fields_to_lua_by_ref,)*
 								})
 							}
 
-							fn to_lua(self) -> ::flatgrass::lua::value::LuaValue
+							fn to_lua(self) -> ::flatgrass::lua::value::Value
 							where
 								Self: Sized,
 							{
-								::flatgrass::lua::value::LuaValue::Table(::flatgrass::lua::table! {
+								::flatgrass::lua::value::Value::Table(::flatgrass::lua::table! {
 									#(#fields_to_lua,)*
 								})
 							}

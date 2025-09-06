@@ -1,5 +1,5 @@
 use crate::lua::Lua;
-use crate::lua::traits::{ToLua, ToLuaIter};
+use crate::lua::traits::{ToLua, ToLuaMany};
 use std::convert::Infallible;
 
 #[repr(transparent)]
@@ -13,14 +13,14 @@ pub enum Return<T, Y = T> {
 }
 
 pub trait LuaFnReturn: Sized {
-	type Values: ToLuaIter;
-	type Yield: ToLuaIter;
+	type Values: ToLuaMany;
+	type Yield: ToLuaMany;
 	type Err: ToLua;
 
 	fn lua_fn_return(self, lua: &Lua) -> Result<Return<Self::Values, Self::Yield>, Self::Err>;
 }
 
-impl<T: ToLuaIter> LuaFnReturn for T {
+impl<T: ToLuaMany> LuaFnReturn for T {
 	type Values = Self;
 	type Yield = Infallible;
 	type Err = Infallible;
@@ -30,7 +30,7 @@ impl<T: ToLuaIter> LuaFnReturn for T {
 	}
 }
 
-impl<T: ToLuaIter> LuaFnReturn for Yield<T> {
+impl<T: ToLuaMany> LuaFnReturn for Yield<T> {
 	type Values = Infallible;
 	type Yield = T;
 	type Err = Infallible;
@@ -40,7 +40,7 @@ impl<T: ToLuaIter> LuaFnReturn for Yield<T> {
 	}
 }
 
-impl<T: ToLuaIter, Y: ToLuaIter> LuaFnReturn for Return<T, Y> {
+impl<T: ToLuaMany, Y: ToLuaMany> LuaFnReturn for Return<T, Y> {
 	type Values = T;
 	type Yield = Y;
 	type Err = Infallible;

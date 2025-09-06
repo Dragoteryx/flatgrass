@@ -1,4 +1,4 @@
-use crate::lua::value::{LuaString, LuaValue, Table};
+use crate::lua::value::{LuaString, Table, Value};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::ser::{self, Serialize, SerializeMap, SerializeSeq, Serializer};
 use std::fmt;
@@ -30,7 +30,7 @@ impl Serialize for Table {
 	}
 }
 
-impl Serialize for LuaValue {
+impl Serialize for Value {
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
 		match self {
 			Self::Nil => ().serialize(serializer),
@@ -58,9 +58,9 @@ impl<'de> Deserialize<'de> for Table {
 	}
 }
 
-impl<'de> Deserialize<'de> for LuaValue {
+impl<'de> Deserialize<'de> for Value {
 	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-		deserializer.deserialize_any(LuaValueVisitor)
+		deserializer.deserialize_any(ValueVisitor)
 	}
 }
 
@@ -74,7 +74,7 @@ impl<'de> Visitor<'de> for TableVisitor {
 
 	fn visit_seq<A: de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
 		let table = Table::new();
-		while let Some(value) = seq.next_element::<LuaValue>()? {
+		while let Some(value) = seq.next_element::<Value>()? {
 			table.raw_push(value);
 		}
 		Ok(table)
@@ -82,50 +82,50 @@ impl<'de> Visitor<'de> for TableVisitor {
 
 	fn visit_map<A: de::MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
 		let table = Table::new();
-		while let Some((key, value)) = map.next_entry::<LuaValue, LuaValue>()? {
+		while let Some((key, value)) = map.next_entry::<Value, Value>()? {
 			table.raw_set(key, value);
 		}
 		Ok(table)
 	}
 }
 
-struct LuaValueVisitor;
-impl<'de> Visitor<'de> for LuaValueVisitor {
-	type Value = LuaValue;
+struct ValueVisitor;
+impl<'de> Visitor<'de> for ValueVisitor {
+	type Value = Value;
 
 	fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "a Lua value")
 	}
 
 	fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-		Ok(LuaValue::Nil)
+		Ok(Value::Nil)
 	}
 
 	fn visit_bool<E: de::Error>(self, bl: bool) -> Result<Self::Value, E> {
-		Ok(LuaValue::Bool(bl))
+		Ok(Value::Bool(bl))
 	}
 
 	fn visit_i64<E: de::Error>(self, num: i64) -> Result<Self::Value, E> {
-		Ok(LuaValue::Number(num as f64))
+		Ok(Value::Number(num as f64))
 	}
 
 	fn visit_u64<E: de::Error>(self, num: u64) -> Result<Self::Value, E> {
-		Ok(LuaValue::Number(num as f64))
+		Ok(Value::Number(num as f64))
 	}
 
 	fn visit_f64<E: de::Error>(self, num: f64) -> Result<Self::Value, E> {
-		Ok(LuaValue::Number(num))
+		Ok(Value::Number(num))
 	}
 
 	fn visit_str<E: de::Error>(self, str: &str) -> Result<Self::Value, E> {
-		Ok(LuaValue::String(str.into()))
+		Ok(Value::String(str.into()))
 	}
 
 	fn visit_seq<A: de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
-		TableVisitor.visit_seq(seq).map(LuaValue::Table)
+		TableVisitor.visit_seq(seq).map(Value::Table)
 	}
 
 	fn visit_map<A: de::MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-		TableVisitor.visit_map(map).map(LuaValue::Table)
+		TableVisitor.visit_map(map).map(Value::Table)
 	}
 }

@@ -1,4 +1,4 @@
-use crate::lua::value::{LuaType, LuaValue};
+use crate::lua::value::{Type, Value};
 use std::borrow::Cow;
 use std::convert::Infallible;
 use std::error::Error;
@@ -12,17 +12,17 @@ use either::Either;
 pub trait FromLua: Sized {
 	type Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err>;
+	fn from_lua(value: Value) -> Result<Self, Self::Err>;
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Self::from_lua(LuaValue::Nil)
+		Self::from_lua(Value::Nil)
 	}
 }
 
 impl<T: FromLua> FromLua for Box<T> {
 	type Err = T::Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		T::from_lua(value).map(Self::new)
 	}
 
@@ -34,7 +34,7 @@ impl<T: FromLua> FromLua for Box<T> {
 impl<T: FromLua> FromLua for Rc<T> {
 	type Err = T::Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		T::from_lua(value).map(Self::new)
 	}
 
@@ -46,7 +46,7 @@ impl<T: FromLua> FromLua for Rc<T> {
 impl<T: FromLua> FromLua for Arc<T> {
 	type Err = T::Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		T::from_lua(value).map(Self::new)
 	}
 
@@ -58,7 +58,7 @@ impl<T: FromLua> FromLua for Arc<T> {
 impl<T: FromLua> FromLua for Option<T> {
 	type Err = T::Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		match (value.is_nil(), T::from_lua(value)) {
 			(false, Err(err)) => Err(err),
 			(true, Err(_)) => Ok(None),
@@ -78,7 +78,7 @@ impl<T: FromLua> FromLua for Option<T> {
 impl<L: FromLua, R: FromLua> FromLua for Either<L, R> {
 	type Err = R::Err;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		match L::from_lua(value.clone()) {
 			Ok(ok) => Ok(Self::Left(ok)),
 			Err(_) => match R::from_lua(value) {
@@ -102,7 +102,7 @@ impl<L: FromLua, R: FromLua> FromLua for Either<L, R> {
 impl<T: FromLua> FromLua for Result<T, T::Err> {
 	type Err = Infallible;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Infallible> {
+	fn from_lua(value: Value) -> Result<Self, Infallible> {
 		Ok(T::from_lua(value))
 	}
 
@@ -114,57 +114,57 @@ impl<T: FromLua> FromLua for Result<T, T::Err> {
 impl FromLua for bool {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Bool(bl) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Bool(bl) = value {
 			Ok(bl)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Bool,
+				Type::Bool,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Bool))
+		Err(FromLuaError::expected_type(Type::Bool))
 	}
 }
 
 impl FromLua for f32 {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Number(num) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Number(num) = value {
 			Ok(num as Self)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Number,
+				Type::Number,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Number))
+		Err(FromLuaError::expected_type(Type::Number))
 	}
 }
 
 impl FromLua for f64 {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Number(num) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Number(num) = value {
 			Ok(num)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Number,
+				Type::Number,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Number))
+		Err(FromLuaError::expected_type(Type::Number))
 	}
 }
 
@@ -176,11 +176,11 @@ pub enum FromLuaError<'a> {
 }
 
 impl FromLuaError<'static> {
-	pub const fn expected_and_got_type(expected: LuaType, got: LuaType) -> Self {
+	pub const fn expected_and_got_type(expected: Type, got: Type) -> Self {
 		Self::ExpectedAndGot(Cow::Borrowed(expected.name()), Cow::Borrowed(got.name()))
 	}
 
-	pub const fn expected_type(expected: LuaType) -> Self {
+	pub const fn expected_type(expected: Type) -> Self {
 		Self::Expected(Cow::Borrowed(expected.name()))
 	}
 }

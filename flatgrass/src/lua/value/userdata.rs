@@ -1,8 +1,8 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::stack::LuaStack;
+use crate::lua::stack::Stack;
 use crate::lua::traits::{FromLua, FromLuaError, ToLua};
-use crate::lua::value::{LuaReference, LuaType, LuaValue};
+use crate::lua::value::{Reference, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
@@ -12,7 +12,7 @@ pub type LightUserdata = *mut crate::ffi::libc::c_void;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Userdata {
-	reference: Rc<LuaReference>,
+	reference: Rc<Reference>,
 }
 
 #[repr(C)]
@@ -22,13 +22,13 @@ pub struct RawUserdata {
 	pub type_id: u8,
 }
 
-impl LuaStack<'_> {
+impl Stack<'_> {
 	pub fn push_userdata(&self, udata: &Userdata) {
 		self.push_reference(&udata.reference);
 	}
 
 	pub fn pop_userdata(&self) -> Option<Userdata> {
-		if self.get_type(-1) == Some(LuaType::Userdata) {
+		if self.get_type(-1) == Some(Type::Userdata) {
 			unsafe { Some(self.pop_userdata_unchecked()) }
 		} else {
 			None
@@ -42,7 +42,7 @@ impl LuaStack<'_> {
 	}
 
 	pub fn get_userdata(&self, idx: i32) -> Option<Userdata> {
-		if self.get_type(idx) == Some(LuaType::Userdata) {
+		if self.get_type(idx) == Some(Type::Userdata) {
 			Some(unsafe { self.get_userdata_unchecked(idx) })
 		} else {
 			None
@@ -69,56 +69,56 @@ impl Userdata {
 }
 
 impl ToLua for Userdata {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.clone().to_lua()
 	}
 
-	fn to_lua(self) -> LuaValue {
-		LuaValue::Userdata(self)
+	fn to_lua(self) -> Value {
+		Value::Userdata(self)
 	}
 }
 
 impl ToLua for LightUserdata {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		LuaValue::LightUserdata(*self)
+	fn to_lua_by_ref(&self) -> Value {
+		Value::LightUserdata(*self)
 	}
 }
 
 impl FromLua for Userdata {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Userdata(udata) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Userdata(udata) = value {
 			Ok(udata)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Userdata,
+				Type::Userdata,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Userdata))
+		Err(FromLuaError::expected_type(Type::Userdata))
 	}
 }
 
 impl FromLua for LightUserdata {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::LightUserdata(lud) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::LightUserdata(lud) = value {
 			Ok(lud)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::LightUserdata,
+				Type::LightUserdata,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::LightUserdata))
+		Err(FromLuaError::expected_type(Type::LightUserdata))
 	}
 }
 

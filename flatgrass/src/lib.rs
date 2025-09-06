@@ -24,11 +24,9 @@ pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::gm::printfg;
 	#[doc(no_inline)]
-	pub use crate::lua::state::{State, StateRef};
+	pub use crate::lua::traits::{FromLua, ToLua, Upvalue};
 	#[doc(no_inline)]
-	pub use crate::lua::traits::{FromLua, ToLua};
-	#[doc(no_inline)]
-	pub use crate::lua::value::{Coroutine, Function, LuaString, LuaValue, Table, Userdata};
+	pub use crate::lua::value::{Coroutine, Function, Table, Userdata, Value, Tuple};
 	#[doc(no_inline)]
 	pub use crate::lua::{Lua, LuaError};
 	#[doc(no_inline)]

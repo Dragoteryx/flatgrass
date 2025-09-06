@@ -1,5 +1,5 @@
 use crate::ffi;
-use std::cell::{Cell, OnceCell};
+use std::cell::Cell;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
 use std::ptr::null_mut;
@@ -21,16 +21,13 @@ pub use crate::{cfunction, table};
 mod macros;
 
 pub mod stack;
-use stack::LuaStack;
-
-pub mod state;
-use state::*;
+use stack::Stack;
 
 pub mod traits;
 use traits::ToLua;
 
 pub mod value;
-use value::LuaValue;
+use value::Value;
 
 mod error;
 pub use error::*;
@@ -38,7 +35,6 @@ pub use error::*;
 thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
-		state_manager: OnceCell::default(),
 		#[cfg(feature = "async")]
 		executor: Executor::new(),
 	};
@@ -48,7 +44,6 @@ thread_local! {
 #[derive(Debug)]
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
-	state_manager: OnceCell<StateManager>,
 	#[cfg(feature = "async")]
 	executor: Executor<'static>,
 }
@@ -74,12 +69,9 @@ impl Lua {
 
 	/// Tries to get the current Lua state.
 	pub fn try_get<T>(func: impl FnOnce(Option<&Self>) -> T) -> T {
-		LUA.with(|lua| {
-			if lua.ptr.get().is_null() {
-				func(None)
-			} else {
-				func(Some(lua))
-			}
+		LUA.with(|lua| match lua.ptr.get().is_null() {
+			false => func(Some(lua)),
+			true => func(None),
 		})
 	}
 
@@ -89,7 +81,7 @@ impl Lua {
 	///
 	/// Panics if the Lua state is not initialized.
 	pub fn get<T>(func: impl FnOnce(&Self) -> T) -> T {
-		Self::try_get(|lua| func(lua.expect("a Lua state")))
+		Self::try_get(|lua| func(lua.expect("uninitialized Lua state")))
 	}
 
 	/// Checks if the Lua state is initialized.
@@ -103,32 +95,8 @@ impl Lua {
 	}
 
 	/// The associated Lua stack.
-	pub fn stack(&self) -> LuaStack<'_> {
-		unsafe { LuaStack::new(self.to_ptr()) }
-	}
-
-	pub fn state_manager(&self) -> Option<&StateManager> {
-		self.state_manager.get()
-	}
-
-	pub fn state<T: 'static>(&self) -> Option<State<'_, T>> {
-		self.state_manager().and_then(StateManager::get)
-	}
-
-	pub fn state_ref<T: 'static>(&self) -> Option<StateRef<'_, T>> {
-		self.state_manager().and_then(StateManager::get_ref)
-	}
-
-	pub fn init_state(&self, init: impl FnOnce(&mut StateManager)) -> bool {
-		match self.state_manager() {
-			Some(_) => false,
-			None => {
-				let mut state_manager = StateManager::default();
-				init(&mut state_manager);
-				let _ = self.state_manager.set(state_manager);
-				true
-			}
-		}
+	pub fn stack(&self) -> Stack<'_> {
+		unsafe { Stack::new(self.to_ptr()) }
 	}
 
 	#[inline]
@@ -169,7 +137,7 @@ impl Lua {
 	}
 
 	/// Checks if two values are equal according to Lua semantics.
-	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, LuaValue> {
+	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, Value> {
 		static EQUALS: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_equal(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
@@ -190,7 +158,7 @@ impl Lua {
 	}
 
 	/// Checks if the first value is less than the second value according to Lua semantics.
-	pub fn less_than<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, LuaValue> {
+	pub fn less_than<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, Value> {
 		static LESS_THAN: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 			let res = ffi::lua_lessthan(state, -1, -2);
 			ffi::lua_pushboolean(state, res);
@@ -213,8 +181,8 @@ impl Lua {
 	#[doc(hidden)]
 	pub fn __fg_entry(&self) {
 		#[cfg(feature = "async")]
-		if let LuaValue::Table(timer) = value::Table::globals().raw_get("timer") {
-			if let LuaValue::Function(create) = timer.raw_get("Create") {
+		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
+			if let Value::Function(create) = timer.raw_get("Create") {
 				static FUNC: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 					Lua::init(state, |lua| lua.executor.poll());
 					0

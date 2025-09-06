@@ -17,6 +17,11 @@ where
 }
 
 #[inline]
+pub async fn yield_now() {
+	crtn::future::yield_now().await;
+}
+
+#[inline]
 pub async fn sleep(duration: Duration) {
 	spawn_blocking(move || std::thread::sleep(duration)).await;
 }

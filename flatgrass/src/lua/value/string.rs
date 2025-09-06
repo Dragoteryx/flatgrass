@@ -1,29 +1,28 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::stack::LuaStack;
+use crate::lua::stack::Stack;
 use crate::lua::traits::{FromLua, FromLuaError, ToLua};
-use crate::lua::value::{LuaReference, LuaType, LuaValue};
+use crate::lua::value::{Reference, Type, Value};
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
 use std::fmt::{self, Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
-use std::slice;
 
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct LuaString {
-	reference: Rc<LuaReference>,
+	reference: Rc<Reference>,
 }
 
-impl LuaStack<'_> {
+impl Stack<'_> {
 	pub fn push_lua_string(&self, lstr: &LuaString) {
 		self.push_reference(&lstr.reference);
 	}
 
 	pub fn pop_lua_string(&self) -> Option<LuaString> {
-		if self.get_type(-1) == Some(LuaType::String) {
+		if self.get_type(-1) == Some(Type::String) {
 			unsafe { Some(self.pop_lua_string_unchecked()) }
 		} else {
 			None
@@ -37,7 +36,7 @@ impl LuaStack<'_> {
 	}
 
 	pub fn get_lua_string(&self, idx: i32) -> Option<LuaString> {
-		if self.get_type(idx) == Some(LuaType::String) {
+		if self.get_type(idx) == Some(Type::String) {
 			Some(unsafe { self.get_lua_string_unchecked(idx) })
 		} else {
 			None
@@ -62,7 +61,7 @@ impl LuaString {
 			stack.push_lua_string(self);
 			let mut len = 0;
 			let ptr = ffi::lua_tolstring(lua.to_ptr(), -1, &mut len);
-			let bytes = slice::from_raw_parts(ptr.cast(), len);
+			let bytes = std::slice::from_raw_parts(ptr.cast(), len);
 			stack.pop_n(1);
 			bytes
 		})
@@ -85,35 +84,35 @@ impl LuaString {
 }
 
 impl ToLua for LuaString {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.clone().to_lua()
 	}
 
-	fn to_lua(self) -> LuaValue {
-		LuaValue::String(self)
+	fn to_lua(self) -> Value {
+		Value::String(self)
 	}
 }
 
 impl ToLua for str {
-	fn to_lua_by_ref(&self) -> LuaValue {
-		LuaString::from(self).to_lua()
+	fn to_lua_by_ref(&self) -> Value {
+		String::from(self).to_lua()
 	}
 }
 
 impl ToLua for String {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.as_str().to_lua()
 	}
 }
 
 impl ToLua for CStr {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		LuaString::from(self).to_lua()
 	}
 }
 
 impl ToLua for CString {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.as_c_str().to_lua()
 	}
 }
@@ -121,43 +120,43 @@ impl ToLua for CString {
 impl FromLua for LuaString {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::String(lstr) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::String(lstr) = value {
 			Ok(lstr)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::String,
+				Type::String,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::String))
+		Err(FromLuaError::expected_type(Type::String))
 	}
 }
 
 impl FromLua for String {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		LuaString::from_lua(value).map(|lstr| lstr.to_string())
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::String))
+		Err(FromLuaError::expected_type(Type::String))
 	}
 }
 
 impl FromLua for CString {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		LuaString::from_lua(value).map(|lstr| lstr.to_c_str().to_owned())
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::String))
+		Err(FromLuaError::expected_type(Type::String))
 	}
 }
 
@@ -169,13 +168,13 @@ impl Default for LuaString {
 
 impl Debug for LuaString {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{:?}", self.to_str())
+		<str as Debug>::fmt(&self.to_str(), f)
 	}
 }
 
 impl Display for LuaString {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.to_str())
+		<str as Display>::fmt(&*self.to_str(), f)
 	}
 }
 

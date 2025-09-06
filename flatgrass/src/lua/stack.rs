@@ -1,7 +1,7 @@
 use crate::ffi;
-use crate::lua::traits::{ToLua, ToLuaIter};
+use crate::lua::traits::{ToLua, ToLuaMany};
 use crate::lua::value::userdata::LightUserdata;
-use crate::lua::value::{LuaType, LuaValue};
+use crate::lua::value::{Type, Value};
 use std::ffi::CStr;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;
@@ -10,20 +10,20 @@ use std::ptr::NonNull;
 /// Provides a safe interface to the Lua stack.
 #[repr(transparent)]
 #[derive(Clone, Copy)]
-pub struct LuaStack<'l> {
+pub struct Stack<'l> {
 	ptr: NonNull<ffi::lua_State>,
 	lua: PhantomData<&'l ()>,
 }
 
 /// An iterator over the values on the stack.
 #[derive(Debug, Clone, Copy)]
-pub struct LuaStackIter<'l> {
-	stack: LuaStack<'l>,
+pub struct StackIter<'l> {
+	stack: Stack<'l>,
 	idx: i32,
 }
 
-impl Iterator for LuaStackIter<'_> {
-	type Item = LuaValue;
+impl Iterator for StackIter<'_> {
+	type Item = Value;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.stack.get_value(self.idx) {
@@ -39,7 +39,7 @@ impl Iterator for LuaStackIter<'_> {
 	}
 }
 
-impl<'l> LuaStack<'l> {
+impl<'l> Stack<'l> {
 	pub unsafe fn new(ptr: *mut ffi::lua_State) -> Self {
 		unsafe {
 			Self {
@@ -55,8 +55,8 @@ impl<'l> LuaStack<'l> {
 	}
 
 	/// Iterate over the values on the stack.
-	pub fn iter(&self) -> LuaStackIter<'l> {
-		LuaStackIter {
+	pub fn iter(&self) -> StackIter<'l> {
+		StackIter {
 			stack: *self,
 			idx: 1,
 		}
@@ -92,19 +92,19 @@ impl<'l> LuaStack<'l> {
 	}
 
 	/// Returns the type of the value at the `idx` index, or `None` if the index isn't valid.
-	pub fn get_type(&self, idx: i32) -> Option<LuaType> {
+	pub fn get_type(&self, idx: i32) -> Option<Type> {
 		unsafe {
 			match ffi::lua_type(self.to_ptr(), idx) {
 				ffi::LUA_TNONE => None,
-				ffi::LUA_TNIL => Some(LuaType::Nil),
-				ffi::LUA_TNUMBER => Some(LuaType::Number),
-				ffi::LUA_TBOOLEAN => Some(LuaType::Bool),
-				ffi::LUA_TSTRING => Some(LuaType::String),
-				ffi::LUA_TTABLE => Some(LuaType::Table),
-				ffi::LUA_TFUNCTION => Some(LuaType::Function),
-				ffi::LUA_TUSERDATA => Some(LuaType::Userdata),
-				ffi::LUA_TTHREAD => Some(LuaType::Coroutine),
-				ffi::LUA_TLIGHTUSERDATA => Some(LuaType::LightUserdata),
+				ffi::LUA_TNIL => Some(Type::Nil),
+				ffi::LUA_TNUMBER => Some(Type::Number),
+				ffi::LUA_TBOOLEAN => Some(Type::Bool),
+				ffi::LUA_TSTRING => Some(Type::String),
+				ffi::LUA_TTABLE => Some(Type::Table),
+				ffi::LUA_TFUNCTION => Some(Type::Function),
+				ffi::LUA_TUSERDATA => Some(Type::Userdata),
+				ffi::LUA_TTHREAD => Some(Type::Coroutine),
+				ffi::LUA_TLIGHTUSERDATA => Some(Type::LightUserdata),
 				_ => unreachable!(),
 			}
 		}
@@ -115,23 +115,23 @@ impl<'l> LuaStack<'l> {
 	/// # Safety
 	///
 	/// You must ensure that the index is valid.
-	pub unsafe fn get_type_unchecked(&self, idx: i32) -> LuaType {
+	pub unsafe fn get_type_unchecked(&self, idx: i32) -> Type {
 		unsafe { self.get_type(idx).unwrap_unchecked() }
 	}
 
 	/// Returns the type of the value at the `idx` index, or `None` if the index isn't valid.
-	pub fn get_value(&self, idx: i32) -> Option<LuaValue> {
+	pub fn get_value(&self, idx: i32) -> Option<Value> {
 		self.get_type(idx).map(|ty| unsafe {
 			match ty {
-				LuaType::Nil => LuaValue::Nil,
-				LuaType::Bool => self.get_bool_unchecked(idx).to_lua(),
-				LuaType::Number => self.get_number_unchecked(idx).to_lua(),
-				LuaType::String => self.get_lua_string_unchecked(idx).to_lua(),
-				LuaType::Table => self.get_table_unchecked(idx).to_lua(),
-				LuaType::Function => self.get_function_unchecked(idx).to_lua(),
-				LuaType::Userdata => self.get_userdata_unchecked(idx).to_lua(),
-				LuaType::Coroutine => self.get_coroutine_unchecked(idx).to_lua(),
-				LuaType::LightUserdata => self.get_light_userdata_unchecked(idx).to_lua(),
+				Type::Nil => Value::Nil,
+				Type::Bool => self.get_bool_unchecked(idx).to_lua(),
+				Type::Number => self.get_number_unchecked(idx).to_lua(),
+				Type::String => self.get_lua_string_unchecked(idx).to_lua(),
+				Type::Table => self.get_table_unchecked(idx).to_lua(),
+				Type::Function => self.get_function_unchecked(idx).to_lua(),
+				Type::Userdata => self.get_userdata_unchecked(idx).to_lua(),
+				Type::Coroutine => self.get_coroutine_unchecked(idx).to_lua(),
+				Type::LightUserdata => self.get_light_userdata_unchecked(idx).to_lua(),
 			}
 		})
 	}
@@ -141,13 +141,13 @@ impl<'l> LuaStack<'l> {
 	/// # Safety
 	///
 	/// You must ensure that the index is valid.
-	pub unsafe fn get_value_unchecked(&self, idx: i32) -> LuaValue {
+	pub unsafe fn get_value_unchecked(&self, idx: i32) -> Value {
 		unsafe { self.get_value(idx).unwrap_unchecked() }
 	}
 
 	/// Returns the boolean at the `idx` index, or `None` if the value at that index isn't a boolean.
 	pub fn get_bool(&self, idx: i32) -> Option<bool> {
-		if self.get_type(idx) == Some(LuaType::Bool) {
+		if self.get_type(idx) == Some(Type::Bool) {
 			Some(unsafe { self.get_bool_unchecked(idx) })
 		} else {
 			None
@@ -165,7 +165,7 @@ impl<'l> LuaStack<'l> {
 
 	/// Returns the number at the `idx` index, or `None` if the value at that index isn't a number.
 	pub fn get_number(&self, idx: i32) -> Option<f64> {
-		if self.get_type(idx) == Some(LuaType::Number) {
+		if self.get_type(idx) == Some(Type::Number) {
 			Some(unsafe { self.get_number_unchecked(idx) })
 		} else {
 			None
@@ -183,7 +183,7 @@ impl<'l> LuaStack<'l> {
 
 	// Returns the light userdata at the `idx` index, or `None` if the value at that index isn't a light userdata.
 	pub fn get_light_userdata(&self, idx: i32) -> Option<LightUserdata> {
-		if self.get_type(idx) == Some(LuaType::LightUserdata) {
+		if self.get_type(idx) == Some(Type::LightUserdata) {
 			Some(unsafe { self.get_light_userdata_unchecked(idx) })
 		} else {
 			None
@@ -200,20 +200,20 @@ impl<'l> LuaStack<'l> {
 	}
 
 	/// Pops the value at the top of the stack, returning it, or `None` if the stack is empty.
-	pub fn pop_value(&self) -> Option<LuaValue> {
+	pub fn pop_value(&self) -> Option<Value> {
 		self.get_type(-1).map(|ty| unsafe {
 			match ty {
-				LuaType::Bool => self.pop_bool_unchecked().to_lua(),
-				LuaType::Number => self.pop_number_unchecked().to_lua(),
-				LuaType::String => self.pop_lua_string_unchecked().to_lua(),
-				LuaType::Table => self.pop_table_unchecked().to_lua(),
-				LuaType::Function => self.pop_function_unchecked().to_lua(),
-				LuaType::Userdata => self.pop_userdata_unchecked().to_lua(),
-				LuaType::Coroutine => self.pop_coroutine_unchecked().to_lua(),
-				LuaType::LightUserdata => self.pop_light_userdata_unchecked().to_lua(),
-				LuaType::Nil => {
+				Type::Bool => self.pop_bool_unchecked().to_lua(),
+				Type::Number => self.pop_number_unchecked().to_lua(),
+				Type::String => self.pop_lua_string_unchecked().to_lua(),
+				Type::Table => self.pop_table_unchecked().to_lua(),
+				Type::Function => self.pop_function_unchecked().to_lua(),
+				Type::Userdata => self.pop_userdata_unchecked().to_lua(),
+				Type::Coroutine => self.pop_coroutine_unchecked().to_lua(),
+				Type::LightUserdata => self.pop_light_userdata_unchecked().to_lua(),
+				Type::Nil => {
 					self.pop_n(1);
-					LuaValue::Nil
+					Value::Nil
 				}
 			}
 		})
@@ -224,13 +224,13 @@ impl<'l> LuaStack<'l> {
 	/// # Safety
 	///
 	/// You must ensure that the stack is not empty.
-	pub unsafe fn pop_value_unchecked(&self) -> LuaValue {
+	pub unsafe fn pop_value_unchecked(&self) -> Value {
 		unsafe { self.pop_value().unwrap_unchecked() }
 	}
 
 	/// Pops the boolean at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_bool(&self) -> Option<bool> {
-		if self.get_type(-1) == Some(LuaType::Bool) {
+		if self.get_type(-1) == Some(Type::Bool) {
 			Some(unsafe { self.pop_bool_unchecked() })
 		} else {
 			None
@@ -250,7 +250,7 @@ impl<'l> LuaStack<'l> {
 
 	/// Pops the number at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_number(&self) -> Option<f64> {
-		if self.get_type(-1) == Some(LuaType::Number) {
+		if self.get_type(-1) == Some(Type::Number) {
 			Some(unsafe { self.pop_number_unchecked() })
 		} else {
 			None
@@ -270,7 +270,7 @@ impl<'l> LuaStack<'l> {
 
 	/// Pops the light userdata at the top of the stack, returning it, or `None` if the stack is empty.
 	pub fn pop_light_userdata(&self) -> Option<LightUserdata> {
-		if self.get_type(-1) == Some(LuaType::LightUserdata) {
+		if self.get_type(-1) == Some(Type::LightUserdata) {
 			Some(unsafe { self.pop_light_userdata_unchecked() })
 		} else {
 			None
@@ -296,8 +296,8 @@ impl<'l> LuaStack<'l> {
 
 	/// Pushes multiple values on the stack.
 	#[track_caller]
-	pub fn push_many<T: ToLuaIter>(&self, values: T) -> i32 {
-		values.to_lua_iter().into_iter().fold(0, |n, value| {
+	pub fn push_many<T: ToLuaMany>(&self, values: T) -> i32 {
+		values.to_lua_many().fold(0, |n, value| {
 			self.push_any(value);
 			n + 1
 		})
@@ -305,17 +305,17 @@ impl<'l> LuaStack<'l> {
 
 	/// Pushes the value on the stack.
 	#[track_caller]
-	pub fn push_value(&self, value: &LuaValue) {
+	pub fn push_value(&self, value: &Value) {
 		match value {
-			LuaValue::Nil => self.push_nil(),
-			LuaValue::Bool(bl) => self.push_bool(*bl),
-			LuaValue::Number(num) => self.push_number(*num),
-			LuaValue::String(lstr) => self.push_lua_string(lstr),
-			LuaValue::Table(tbl) => self.push_table(tbl),
-			LuaValue::Function(func) => self.push_function(func),
-			LuaValue::Userdata(ud) => self.push_userdata(ud),
-			LuaValue::Coroutine(cor) => self.push_coroutine(cor),
-			LuaValue::LightUserdata(ptr) => self.push_light_userdata(*ptr),
+			Value::Nil => self.push_nil(),
+			Value::Bool(bl) => self.push_bool(*bl),
+			Value::Number(num) => self.push_number(*num),
+			Value::String(lstr) => self.push_lua_string(lstr),
+			Value::Table(tbl) => self.push_table(tbl),
+			Value::Function(func) => self.push_function(func),
+			Value::Userdata(ud) => self.push_userdata(ud),
+			Value::Coroutine(cor) => self.push_coroutine(cor),
+			Value::LightUserdata(ptr) => self.push_light_userdata(*ptr),
 		}
 	}
 
@@ -431,7 +431,7 @@ impl<'l> LuaStack<'l> {
 
 	/// Pushes a raw Lua function on the stack with upvalues.
 	#[track_caller]
-	pub fn push_c_closure<T: ToLuaIter>(&self, func: ffi::lua_CFunction, upvalues: T) {
+	pub fn push_c_closure<T: ToLuaMany>(&self, func: ffi::lua_CFunction, upvalues: T) {
 		let n = self.push_many(upvalues);
 		if self.check_size(1) {
 			unsafe {
@@ -486,9 +486,9 @@ impl<'l> LuaStack<'l> {
 	}
 }
 
-impl Debug for LuaStack<'_> {
+impl Debug for Stack<'_> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "LuaStack <{:?}> ", self.to_ptr())?;
+		write!(f, "Stack <{:?}> ", self.to_ptr())?;
 		f.debug_list().entries(self.iter()).finish()
 	}
 }

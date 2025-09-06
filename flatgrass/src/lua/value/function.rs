@@ -1,10 +1,9 @@
 use crate::ffi;
 use crate::lua::Lua;
-use crate::lua::stack::LuaStack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaIter};
-use crate::lua::value::{LuaReference, LuaType, LuaValue};
+use crate::lua::stack::Stack;
+use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaMany};
+use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
-use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
@@ -12,16 +11,16 @@ use std::rc::Rc;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct Function {
-	reference: Rc<LuaReference>,
+	reference: Rc<Reference>,
 }
 
-impl LuaStack<'_> {
+impl Stack<'_> {
 	pub fn push_function(&self, func: &Function) {
 		self.push_reference(&func.reference);
 	}
 
 	pub fn pop_function(&self) -> Option<Function> {
-		if self.get_type(-1) == Some(LuaType::Function) {
+		if self.get_type(-1) == Some(Type::Function) {
 			unsafe { Some(self.pop_function_unchecked()) }
 		} else {
 			None
@@ -35,7 +34,7 @@ impl LuaStack<'_> {
 	}
 
 	pub fn get_function(&self, idx: i32) -> Option<Function> {
-		if self.get_type(idx) == Some(LuaType::Function) {
+		if self.get_type(idx) == Some(Type::Function) {
 			Some(unsafe { self.get_function_unchecked(idx) })
 		} else {
 			None
@@ -58,7 +57,7 @@ impl Function {
 		})
 	}
 
-	pub fn closure<T: ToLuaIter>(func: ffi::lua_CFunction, upvalues: T) -> Self {
+	pub fn closure<T: ToLuaMany>(func: ffi::lua_CFunction, upvalues: T) -> Self {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_c_closure(func, upvalues);
@@ -86,7 +85,7 @@ impl Function {
 		})
 	}
 
-	pub fn call<T: ToLuaIter>(&self, args: T) -> Result<VecDeque<LuaValue>, LuaValue> {
+	pub fn call<T: ToLuaMany>(&self, args: T) -> Result<Tuple, Value> {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			let size = stack.size();
@@ -95,7 +94,7 @@ impl Function {
 			let status = ffi::lua_pcall(lua.to_ptr(), n_args, ffi::LUA_MULTRET, 0);
 			if status == 0 {
 				let n_ret = (stack.size() - size) as usize;
-				let mut values = VecDeque::with_capacity(n_ret);
+				let mut values = Tuple::with_capacity(n_ret);
 				for _ in 0..n_ret {
 					values.push_front(stack.pop_value_unchecked());
 				}
@@ -109,17 +108,17 @@ impl Function {
 }
 
 impl ToLua for Function {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		self.clone().to_lua()
 	}
 
-	fn to_lua(self) -> LuaValue {
-		LuaValue::Function(self)
+	fn to_lua(self) -> Value {
+		Value::Function(self)
 	}
 }
 
 impl ToLua for ffi::lua_CFunction {
-	fn to_lua_by_ref(&self) -> LuaValue {
+	fn to_lua_by_ref(&self) -> Value {
 		Function::new(*self).to_lua()
 	}
 }
@@ -127,19 +126,19 @@ impl ToLua for ffi::lua_CFunction {
 impl FromLua for Function {
 	type Err = FromLuaError<'static>;
 
-	fn from_lua(value: LuaValue) -> Result<Self, Self::Err> {
-		if let LuaValue::Function(func) = value {
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		if let Value::Function(func) = value {
 			Ok(func)
 		} else {
 			Err(FromLuaError::expected_and_got_type(
-				LuaType::Function,
+				Type::Function,
 				value.get_type(),
 			))
 		}
 	}
 
 	fn no_value() -> Result<Self, Self::Err> {
-		Err(FromLuaError::expected_type(LuaType::Function))
+		Err(FromLuaError::expected_type(Type::Function))
 	}
 }
 
