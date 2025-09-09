@@ -7,8 +7,5 @@ pub use fn_return::*;
 mod from_lua;
 pub use from_lua::*;
 
-mod to_lua_many;
-pub use to_lua_many::*;
-
 mod to_lua;
 pub use to_lua::*;

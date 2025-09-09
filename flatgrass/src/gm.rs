@@ -16,7 +16,7 @@ pub enum Realm {
 
 impl Realm {
 	pub fn get() -> Option<Self> {
-		if Lua::is_initialized() {
+		if Lua::is_valid() {
 			let globals = Table::globals();
 			let server = globals.raw_get("SERVER").truthy();
 			let client = globals.raw_get("CLIENT").truthy();

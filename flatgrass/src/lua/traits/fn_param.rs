@@ -3,6 +3,7 @@ use crate::ffi::lua_upvalueindex;
 use crate::lua::Lua;
 use crate::lua::error::LuaError;
 use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::value::Tuple;
 use std::error::Error;
 use std::ffi::CStr;
 use std::fmt::{self, Display};
@@ -37,7 +38,8 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for Upvalue<T> {
 
 	fn lua_fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
 		let upv = replace(upv, *upv + 1);
-		let res = match lua.stack().get_value(lua_upvalueindex(upv)) {
+		let idx = lua_upvalueindex(upv);
+		let res = match lua.stack().get_value(idx) {
 			Some(value) => T::from_lua(value),
 			None => T::no_value(),
 		};
@@ -46,6 +48,37 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for Upvalue<T> {
 			Ok(value) => Ok(Self(value)),
 			Err(err) => Err(LuaError::new(err)),
 		}
+	}
+}
+
+impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<T> {
+	type Err = LuaError<BadArgumentError<T::Err>>;
+
+	fn lua_fn_param(lua: &Lua, arg: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
+		let mut tuple = Self::new();
+		while let Some(value) = lua.stack().get_value(*arg) {
+			let value = T::from_lua(value)
+				.map_err(|err| LuaError::new(BadArgumentError::new(*arg, err)))?;
+			tuple.push_back(value);
+			*arg += 1;
+		}
+
+		Ok(tuple)
+	}
+}
+
+impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<Upvalue<T>> {
+	type Err = LuaError<T::Err>;
+
+	fn lua_fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
+		let mut tuple = Self::new();
+		while let Some(value) = lua.stack().get_value(*upv) {
+			let value = T::from_lua(value).map_err(LuaError::new)?;
+			tuple.push_back(Upvalue(value));
+			*upv += 1;
+		}
+
+		Ok(tuple)
 	}
 }
 

@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::stack::Stack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaMany};
+use crate::lua::traits::{FromLua, FromLuaError, ToLua};
 use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
@@ -57,7 +57,7 @@ impl Function {
 		})
 	}
 
-	pub fn closure<T: ToLuaMany>(func: ffi::lua_CFunction, upvalues: T) -> Self {
+	pub fn closure<T: IntoIterator<Item: ToLua>>(func: ffi::lua_CFunction, upvalues: T) -> Self {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_c_closure(func, upvalues);
@@ -85,7 +85,7 @@ impl Function {
 		})
 	}
 
-	pub fn call<T: ToLuaMany>(&self, args: T) -> Result<Tuple, Value> {
+	pub fn call<T: IntoIterator<Item: ToLua>>(&self, args: T) -> Result<Tuple, Value> {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			let size = stack.size();
@@ -104,6 +104,98 @@ impl Function {
 				Err(stack.pop_value_unchecked())
 			}
 		})
+	}
+
+	pub fn call0(&self) -> Result<Tuple, Value> {
+		self.call::<[u8; _]>([])
+	}
+
+	pub fn call1<T: ToLua>(&self, arg: T) -> Result<Tuple, Value> {
+		self.call([arg])
+	}
+
+	pub fn call2<T1, T2>(&self, arg1: T1, arg2: T2) -> Result<Tuple, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+	{
+		self.call([arg1.to_lua(), arg2.to_lua()])
+	}
+
+	pub fn call3<T1, T2, T3>(&self, arg1: T1, arg2: T2, arg3: T3) -> Result<Tuple, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+	{
+		self.call([arg1.to_lua(), arg2.to_lua(), arg3.to_lua()])
+	}
+
+	pub fn call4<T1, T2, T3, T4>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+	) -> Result<Tuple, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+	{
+		self.call([arg1.to_lua(), arg2.to_lua(), arg3.to_lua(), arg4.to_lua()])
+	}
+
+	pub fn call5<T1, T2, T3, T4, T5>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+		arg5: T5,
+	) -> Result<Tuple, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+		T5: ToLua,
+	{
+		self.call([
+			arg1.to_lua(),
+			arg2.to_lua(),
+			arg3.to_lua(),
+			arg4.to_lua(),
+			arg5.to_lua(),
+		])
+	}
+
+	pub fn call6<T1, T2, T3, T4, T5, T6>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+		arg5: T5,
+		arg6: T6,
+	) -> Result<Tuple, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+		T5: ToLua,
+		T6: ToLua,
+	{
+		self.call([
+			arg1.to_lua(),
+			arg2.to_lua(),
+			arg3.to_lua(),
+			arg4.to_lua(),
+			arg5.to_lua(),
+			arg6.to_lua(),
+		])
 	}
 }
 

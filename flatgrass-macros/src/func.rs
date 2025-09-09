@@ -24,10 +24,10 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 	let body = match errors.is_empty() {
 		false => quote! { 0 },
 		true => quote! {
-			if ::flatgrass::lua::Lua::init(__fg_state, |__fg_lua| {
+			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
 				let __fg_func = ::flatgrass::lua::value::Function::new(::flatgrass::cfunction!(#ident));
 				__fg_lua.__fg_entry();
-				match __fg_func.call(()) {
+				match __fg_func.call0() {
 					Ok(_) => false,
 					Err(__fg_err) => {
 						__fg_lua.stack().clear();
@@ -77,9 +77,9 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 	let body = match errors.is_empty() {
 		false => quote! { 0 },
 		true => quote! {
-			if ::flatgrass::lua::Lua::init(__fg_state, |__fg_lua| {
+			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
 				let __fg_func = ::flatgrass::lua::value::Function::new(::flatgrass::cfunction!(#ident));
-				let __fg_res = __fg_func.call(());
+				let __fg_res = __fg_func.call0();
 				__fg_lua.__fg_exit();
 				match __fg_res {
 					Ok(_) => false,
@@ -174,15 +174,15 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			};
 
 			quote! {
-				match ::flatgrass::lua::Lua::init(__fg_state, |__fg_lua| {
+				match ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
 					let (mut __fg_arg, mut __fg_upv) = (1, 1);
 					#call
 				}) {
 					::core::option::Option::None => ::flatgrass::ffi::lua_error(__fg_state),
 					::core::option::Option::Some(__fg_ret) => match __fg_ret {
-						::flatgrass::lua::traits::Return::Values(__fg_i) => __fg_i,
-						::flatgrass::lua::traits::Return::Yield(__fg_i) => {
-							::flatgrass::ffi::lua_yield(__fg_state, __fg_i)
+						::flatgrass::lua::traits::Return::Values(__fg_n) => __fg_n,
+						::flatgrass::lua::traits::Return::Yield(__fg_n) => {
+							::flatgrass::ffi::lua_yield(__fg_state, __fg_n)
 						}
 					}
 				}

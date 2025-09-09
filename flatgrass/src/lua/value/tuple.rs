@@ -1,6 +1,5 @@
 use crate::lua::value::Value;
-//use crate::lua::traits::ToLuaMany;
-use std::collections::VecDeque;
+use std::collections::vec_deque::{IntoIter, VecDeque};
 use std::fmt::{self, Debug};
 use std::ops::{Deref, DerefMut};
 
@@ -56,5 +55,28 @@ impl<T> Deref for Tuple<T> {
 impl<T> DerefMut for Tuple<T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.inner
+	}
+}
+
+impl<T> FromIterator<T> for Tuple<T> {
+	fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+		Self {
+			inner: VecDeque::from_iter(iter),
+		}
+	}
+}
+
+impl<T> Extend<T> for Tuple<T> {
+	fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+		self.inner.extend(iter);
+	}
+}
+
+impl<T> IntoIterator for Tuple<T> {
+	type IntoIter = IntoIter<T>;
+	type Item = T;
+
+	fn into_iter(self) -> Self::IntoIter {
+		self.inner.into_iter()
 	}
 }

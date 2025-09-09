@@ -1,5 +1,5 @@
 use crate::ffi;
-use crate::lua::traits::{ToLua, ToLuaMany};
+use crate::lua::traits::ToLua;
 use crate::lua::value::userdata::LightUserdata;
 use crate::lua::value::{Type, Value};
 use std::ffi::CStr;
@@ -296,8 +296,8 @@ impl<'l> Stack<'l> {
 
 	/// Pushes multiple values on the stack.
 	#[track_caller]
-	pub fn push_many<T: ToLuaMany>(&self, values: T) -> i32 {
-		values.to_lua_many().fold(0, |n, value| {
+	pub fn push_many<T: IntoIterator<Item: ToLua>>(&self, values: T) -> i32 {
+		values.into_iter().fold(0, |n, value| {
 			self.push_any(value);
 			n + 1
 		})
@@ -431,7 +431,11 @@ impl<'l> Stack<'l> {
 
 	/// Pushes a raw Lua function on the stack with upvalues.
 	#[track_caller]
-	pub fn push_c_closure<T: ToLuaMany>(&self, func: ffi::lua_CFunction, upvalues: T) {
+	pub fn push_c_closure<T: IntoIterator<Item: ToLua>>(
+		&self,
+		func: ffi::lua_CFunction,
+		upvalues: T,
+	) {
 		let n = self.push_many(upvalues);
 		if self.check_size(1) {
 			unsafe {

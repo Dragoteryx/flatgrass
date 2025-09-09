@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::stack::Stack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua, ToLuaMany};
+use crate::lua::traits::{FromLua, FromLuaError, ToLua};
 use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
@@ -127,7 +127,7 @@ impl Coroutine {
 		})
 	}
 
-	pub fn resume<T: ToLuaMany>(&self, args: T) -> Result<Resume, Value> {
+	pub fn resume<T: IntoIterator<Item: ToLua>>(&self, args: T) -> Result<Resume, Value> {
 		unsafe {
 			let stack = Stack::new(self.to_ptr());
 			let n_args = stack.push_many(args);
@@ -148,6 +148,98 @@ impl Coroutine {
 				_ => Err(stack.pop_value_unchecked()),
 			}
 		}
+	}
+
+	pub fn resume0(&self) -> Result<Resume, Value> {
+		self.resume::<[u8; _]>([])
+	}
+
+	pub fn resume1<T: ToLua>(&self, arg: T) -> Result<Resume, Value> {
+		self.resume([arg])
+	}
+
+	pub fn resume2<T1, T2>(&self, arg1: T1, arg2: T2) -> Result<Resume, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+	{
+		self.resume([arg1.to_lua(), arg2.to_lua()])
+	}
+
+	pub fn resume3<T1, T2, T3>(&self, arg1: T1, arg2: T2, arg3: T3) -> Result<Resume, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+	{
+		self.resume([arg1.to_lua(), arg2.to_lua(), arg3.to_lua()])
+	}
+
+	pub fn resume4<T1, T2, T3, T4>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+	) -> Result<Resume, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+	{
+		self.resume([arg1.to_lua(), arg2.to_lua(), arg3.to_lua(), arg4.to_lua()])
+	}
+
+	pub fn resume5<T1, T2, T3, T4, T5>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+		arg5: T5,
+	) -> Result<Resume, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+		T5: ToLua,
+	{
+		self.resume([
+			arg1.to_lua(),
+			arg2.to_lua(),
+			arg3.to_lua(),
+			arg4.to_lua(),
+			arg5.to_lua(),
+		])
+	}
+
+	pub fn resume6<T1, T2, T3, T4, T5, T6>(
+		&self,
+		arg1: T1,
+		arg2: T2,
+		arg3: T3,
+		arg4: T4,
+		arg5: T5,
+		arg6: T6,
+	) -> Result<Resume, Value>
+	where
+		T1: ToLua,
+		T2: ToLua,
+		T3: ToLua,
+		T4: ToLua,
+		T5: ToLua,
+		T6: ToLua,
+	{
+		self.resume([
+			arg1.to_lua(),
+			arg2.to_lua(),
+			arg3.to_lua(),
+			arg4.to_lua(),
+			arg5.to_lua(),
+			arg6.to_lua(),
+		])
 	}
 }
 
@@ -218,7 +310,7 @@ impl Iterator for Coroutine {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.is_dead() {
-			false => Some(self.resume(())),
+			false => Some(self.resume0()),
 			true => None,
 		}
 	}
@@ -228,9 +320,9 @@ impl Future for Coroutine {
 	type Output = Result<Tuple, Value>;
 
 	fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-		match self.resume(()) {
-			Ok(Resume::Return(values)) => Poll::Ready(Ok(values)),
+		match self.resume0() {
 			Err(err) => Poll::Ready(Err(err)),
+			Ok(Resume::Return(values)) => Poll::Ready(Ok(values)),
 			Ok(Resume::Yield(_)) => {
 				cx.waker().wake_by_ref();
 				Poll::Pending

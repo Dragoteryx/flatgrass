@@ -49,12 +49,18 @@ pub struct Lua {
 }
 
 impl Lua {
-	/// Initializes a new Lua state and runs the given function with it.
+	/// Enters a new Lua context and executes the provided closure.\
+	/// Lua objects can be created and Lua functions can be called within the scope of the closure.\
+	/// The previous Lua context is restored after the closure returns.
 	///
 	/// # Safety
 	///
 	/// The Lua state passed as an argument must be valid.
-	pub unsafe fn init<T>(ptr: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
+	///
+	/// # Panics
+	///
+	/// Will abort the process if the closure panics to prevent unwinding through the FFI boundary.
+	pub unsafe fn enter<T>(ptr: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
 		LUA.with(|lua| {
 			let old_ptr = lua.ptr.replace(ptr);
 			match catch_unwind(AssertUnwindSafe(|| func(lua))) {
@@ -79,13 +85,13 @@ impl Lua {
 	///
 	/// # Panics
 	///
-	/// Panics if the Lua state is not initialized.
+	/// Panics if the Lua state is not valid.
 	pub fn get<T>(func: impl FnOnce(&Self) -> T) -> T {
 		Self::try_get(|lua| func(lua.expect("uninitialized Lua state")))
 	}
 
-	/// Checks if the Lua state is initialized.
-	pub fn is_initialized() -> bool {
+	/// Checks if the Lua state is valid.
+	pub fn is_valid() -> bool {
 		Lua::try_get(|lua| lua.is_some())
 	}
 
@@ -184,12 +190,12 @@ impl Lua {
 		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
 			if let Value::Function(create) = timer.raw_get("Create") {
 				static FUNC: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-					Lua::init(state, |lua| lua.executor.poll());
+					Lua::enter(state, |lua| lua.executor.poll());
 					0
 				});
 
 				let id = format!("__fg_poll_{:p}", self);
-				let _ = create.call((id, 0.0, 0.0, FUNC));
+				let _ = create.call4(id, 0.0, 0.0, FUNC);
 			}
 		}
 	}
