@@ -72,7 +72,8 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<Upvalue<T>> {
 
 	fn lua_fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
 		let mut tuple = Self::new();
-		while let Some(value) = lua.stack().get_value(*upv) {
+		let idx = lua_upvalueindex(*upv);
+		while let Some(value) = lua.stack().get_value(idx) {
 			let value = T::from_lua(value).map_err(LuaError::new)?;
 			tuple.push_back(Upvalue(value));
 			*upv += 1;
