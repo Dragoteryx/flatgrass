@@ -3,6 +3,6 @@
 #[macro_export]
 macro_rules! printfg {
 	($($tt:tt)*) => {
-		$crate::gm::print(::std::format!($($tt)*))
+		$crate::gm::print(&::std::format!($($tt)*))
 	};
 }

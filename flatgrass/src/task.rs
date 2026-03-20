@@ -1,6 +1,5 @@
 use crate::lua::Lua;
-pub use crtn::executor::JoinHandle;
-use std::time::Duration;
+pub use avenir::JoinHandle;
 
 #[inline]
 pub fn spawn<F: IntoFuture + 'static>(future: F) -> JoinHandle<F::Output> {
@@ -18,15 +17,5 @@ where
 
 #[inline]
 pub async fn yield_now() {
-	crtn::future::yield_now().await;
-}
-
-#[inline]
-pub async fn sleep(duration: Duration) {
-	spawn_blocking(move || std::thread::sleep(duration)).await;
-}
-
-#[inline]
-pub async fn sleep_ms(ms: u64) {
-	sleep(Duration::from_millis(ms)).await;
+	avenir::yield_now().await;
 }

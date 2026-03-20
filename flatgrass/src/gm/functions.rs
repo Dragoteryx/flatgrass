@@ -1,11 +1,10 @@
 use super::*;
 
-pub fn print<T: AsRef<str>>(msg: T) {
+pub fn print(msg: &str) {
 	if Lua::is_valid() {
 		let globals = Table::globals();
 		let print = globals.raw_get("print");
 		if let Value::Function(print) = print {
-			let msg = msg.as_ref();
 			for line in msg.lines() {
 				if print.call1(line).is_err() {
 					break;

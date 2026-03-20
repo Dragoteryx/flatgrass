@@ -1,4 +1,4 @@
-#![cfg_attr(fg_nightly, feature(doc_auto_cfg))]
+#![cfg_attr(fg_nightly, feature(doc_cfg))]
 #![warn(clippy::use_self)]
 
 // Re-export the ffi module.
@@ -18,6 +18,10 @@ pub mod gm;
 /// Asynchronous programming utilities.
 #[cfg(feature = "async")]
 pub mod task;
+
+/// Serialization and deserialization support for Lua values.
+#[cfg(feature = "serde")]
+mod serde;
 
 /// Re-exports commonly used macros and types.
 pub mod prelude {

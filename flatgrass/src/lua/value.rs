@@ -7,9 +7,6 @@ use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::mem::forget;
 
-#[cfg(feature = "serde")]
-mod serde;
-
 mod tuple;
 pub use tuple::*;
 

@@ -101,27 +101,28 @@ impl Coroutine {
 
 	pub fn status(&self) -> Status {
 		Lua::get(|lua| unsafe {
-			if lua.to_ptr() == self.to_ptr() {
+			let ptr = self.to_ptr();
+			if lua.to_ptr() == ptr {
 				Status::Running
 			} else {
 				let stack = lua.stack();
 				stack.push_coroutine(self);
-				let status = ffi::lua_status(self.to_ptr());
+				let status = ffi::lua_status(ptr);
 				stack.pop_n(1);
 
-				match status {
-					ffi::LUA_YIELD => Status::Suspended,
-					0 => {
-						let mut dbg = std::mem::zeroed();
-						if ffi::lua_getstack(self.to_ptr(), 0, &mut dbg) != 0 {
-							Status::Normal
-						} else if ffi::lua_gettop(self.to_ptr()) == 0 {
-							Status::Dead
-						} else {
-							Status::Suspended
-						}
+				if status == ffi::LUA_YIELD {
+					Status::Suspended
+				} else if status == 0 {
+					let mut dbg = std::mem::zeroed();
+					if ffi::lua_getstack(ptr, 0, &mut dbg) != 0 {
+						Status::Normal
+					} else if ffi::lua_gettop(ptr) == 0 {
+						Status::Dead
+					} else {
+						Status::Suspended
 					}
-					_ => Status::Dead,
+				} else {
+					Status::Dead
 				}
 			}
 		})
