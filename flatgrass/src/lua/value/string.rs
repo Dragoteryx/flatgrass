@@ -95,7 +95,7 @@ impl ToLua for LuaString {
 
 impl ToLua for str {
 	fn to_lua_by_ref(&self) -> Value {
-		String::from(self).to_lua()
+		LuaString::from(self).to_lua()
 	}
 }
 
