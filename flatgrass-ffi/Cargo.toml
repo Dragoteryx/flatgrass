@@ -9,7 +9,7 @@ doctest = false
 
 [dependencies]
 libc = "0.2"
-libloading = "0.8"
+libloading = "0.9"
 
 [package.metadata.docs.rs]
 all-features = true
