@@ -241,7 +241,7 @@ impl<'l> Stack<'l> {
 	///
 	/// # Safety
 	///
-	/// You must ensure that the stack is not empty.
+	/// You must ensure that the value at the top of the stack is a boolean.
 	pub unsafe fn pop_bool_unchecked(&self) -> bool {
 		let bl = unsafe { self.get_bool_unchecked(-1) };
 		self.pop_n(1);
