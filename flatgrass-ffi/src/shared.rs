@@ -29,10 +29,7 @@ fn find_lua_shared() -> Option<Library> {
 
 #[cfg(fg_win64)]
 fn find_lua_shared() -> Option<Library> {
-	unsafe {
-		opened_lua_shared()
-			.or_else(|| open_library!("bin/win64/lua_shared.dll"))
-	}
+	unsafe { opened_lua_shared().or_else(|| open_library!("bin/win64/lua_shared.dll")) }
 }
 
 #[cfg(fg_linux32)]
@@ -60,6 +57,5 @@ fn find_lua_shared() -> Option<Library> {
 }
 
 /// The `lua_shared` library.
-pub static LUA_SHARED: LazyLock<Library> = LazyLock::new(|| {
-	find_lua_shared().expect("failed to open lua_shared")
-});
+pub static LUA_SHARED: LazyLock<Library> =
+	LazyLock::new(|| find_lua_shared().expect("failed to open lua_shared"));

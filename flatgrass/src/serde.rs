@@ -17,7 +17,7 @@ impl Serialize for Table {
 				if self.is_sequential() {
 					let mut seq = serializer.serialize_seq(Some(self.len()))?;
 					self.ipairs()
-						.try_for_each(|value| seq.serialize_element(&value))?;
+						.try_for_each(|(_, value)| seq.serialize_element(&value))?;
 					seq.end()
 				} else {
 					let mut map = serializer.serialize_map(Some(self.pairs().count()))?;

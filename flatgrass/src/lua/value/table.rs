@@ -44,8 +44,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn get_table_unchecked(&self, idx: i32) -> Table {
+		let reference = unsafe { self.get_reference_unchecked(idx) };
 		Table {
-			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
+			reference: Rc::new(reference),
 		}
 	}
 }

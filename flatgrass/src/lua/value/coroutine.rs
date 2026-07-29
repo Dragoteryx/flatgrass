@@ -44,8 +44,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn pop_coroutine_unchecked(&self) -> Coroutine {
+		let reference = unsafe { self.pop_reference_unchecked() };
 		Coroutine {
-			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
+			reference: Rc::new(reference),
 		}
 	}
 

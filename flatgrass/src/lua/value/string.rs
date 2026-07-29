@@ -30,8 +30,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn pop_lua_string_unchecked(&self) -> LuaString {
+		let reference = unsafe { self.pop_reference_unchecked() };
 		LuaString {
-			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
+			reference: Rc::new(reference),
 		}
 	}
 

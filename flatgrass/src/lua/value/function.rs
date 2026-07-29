@@ -42,8 +42,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn get_function_unchecked(&self, idx: i32) -> Function {
+		let reference = unsafe { self.get_reference_unchecked(idx) };
 		Function {
-			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
+			reference: Rc::new(reference),
 		}
 	}
 }
