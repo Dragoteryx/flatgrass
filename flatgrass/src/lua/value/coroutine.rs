@@ -59,8 +59,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn get_coroutine_unchecked(&self, idx: i32) -> Coroutine {
+		let reference = unsafe { self.get_reference_unchecked(idx) };
 		Coroutine {
-			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
+			reference: Rc::new(reference),
 		}
 	}
 }
