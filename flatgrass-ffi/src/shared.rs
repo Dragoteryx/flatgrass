@@ -2,7 +2,7 @@ use libloading::Library;
 use std::sync::LazyLock;
 
 #[cfg(any(fg_win32, fg_win64))]
-use libloading::os::windows::Library as WindowsLibrary;
+use libloading::os::windows::Library as WinLibrary;
 
 #[allow(unused_macros)]
 macro_rules! open_library {
@@ -13,9 +13,14 @@ macro_rules! open_library {
 
 #[cfg(any(fg_win32, fg_win64))]
 fn opened_lua_shared() -> Option<Library> {
-	WindowsLibrary::open_already_loaded("lua_shared.dll")
+	WinLibrary::open_already_loaded("lua_shared.dll")
 		.map(Library::from)
 		.ok()
+}
+
+#[cfg(fg_win64)]
+fn find_lua_shared() -> Option<Library> {
+	unsafe { opened_lua_shared().or_else(|| open_library!("bin/win64/lua_shared.dll")) }
 }
 
 #[cfg(fg_win32)]
@@ -27,9 +32,12 @@ fn find_lua_shared() -> Option<Library> {
 	}
 }
 
-#[cfg(fg_win64)]
+#[cfg(fg_linux64)]
 fn find_lua_shared() -> Option<Library> {
-	unsafe { opened_lua_shared().or_else(|| open_library!("bin/win64/lua_shared.dll")) }
+	unsafe {
+		open_library!("bin/linux64/lua_shared.so")
+			.or_else(|| open_library!("bin/linux64/lua_shared_client.so"))
+	}
 }
 
 #[cfg(fg_linux32)]
@@ -39,14 +47,6 @@ fn find_lua_shared() -> Option<Library> {
 			.or_else(|| open_library!("garrysmod/bin/lua_shared.so"))
 			.or_else(|| open_library!("bin/linux32/lua_shared.so"))
 			.or_else(|| open_library!("bin/linux32/lua_shared_client.so"))
-	}
-}
-
-#[cfg(fg_linux64)]
-fn find_lua_shared() -> Option<Library> {
-	unsafe {
-		open_library!("bin/linux64/lua_shared.so")
-			.or_else(|| open_library!("bin/linux64/lua_shared_client.so"))
 	}
 }
 

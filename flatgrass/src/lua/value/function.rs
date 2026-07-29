@@ -28,8 +28,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn pop_function_unchecked(&self) -> Function {
+		let reference = unsafe { self.pop_reference_unchecked() };
 		Function {
-			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
+			reference: Rc::new(reference),
 		}
 	}
 

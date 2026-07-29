@@ -45,8 +45,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn get_lua_string_unchecked(&self, idx: i32) -> LuaString {
+		let reference = unsafe { self.get_reference_unchecked(idx) };
 		LuaString {
-			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
+			reference: Rc::new(reference),
 		}
 	}
 }

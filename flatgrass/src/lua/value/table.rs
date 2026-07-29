@@ -30,8 +30,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn pop_table_unchecked(&self) -> Table {
+		let reference = unsafe { self.pop_reference_unchecked() };
 		Table {
-			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
+			reference: Rc::new(reference),
 		}
 	}
 

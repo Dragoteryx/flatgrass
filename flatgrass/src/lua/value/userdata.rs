@@ -36,8 +36,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn pop_userdata_unchecked(&self) -> Userdata {
+		let reference = unsafe { self.pop_reference_unchecked() };
 		Userdata {
-			reference: Rc::new(unsafe { self.pop_reference_unchecked() }),
+			reference: Rc::new(reference),
 		}
 	}
 
@@ -50,8 +51,9 @@ impl Stack<'_> {
 	}
 
 	pub unsafe fn get_userdata_unchecked(&self, idx: i32) -> Userdata {
+		let reference = unsafe { self.get_reference_unchecked(idx) };
 		Userdata {
-			reference: Rc::new(unsafe { self.get_reference_unchecked(idx) }),
+			reference: Rc::new(reference),
 		}
 	}
 }
