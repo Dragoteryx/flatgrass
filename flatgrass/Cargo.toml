@@ -9,14 +9,15 @@ doctest = false
 
 [features]
 default = ["macros"]
+either = ["dep:either"]
 macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
-either = ["dep:either"]
+smol = ["async", "dep:async-io"]
+tokio = ["async", "dep:tokio"]
 async = [
 	"flatgrass-macros?/async",
-	"dep:async-channel",
 	"dep:async-executor",
-	"dep:async-io",
+	"dep:async-channel",
 ]
 
 [dependencies.flatgrass-ffi]
@@ -24,6 +25,15 @@ path = "../flatgrass-ffi"
 
 [dependencies.flatgrass-macros]
 path = "../flatgrass-macros"
+optional = true
+
+[dependencies.either]
+version = "1"
+optional = true
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
 optional = true
 
 [dependencies.async-channel]
@@ -38,13 +48,10 @@ optional = true
 version = "2"
 optional = true
 
-[dependencies.either]
+[dependencies.tokio]
 version = "1"
-optional = true
-
-[dependencies.serde]
-version = "1"
-features = ["derive"]
+default-features = false
+features = ["rt"]
 optional = true
 
 [build-dependencies]
