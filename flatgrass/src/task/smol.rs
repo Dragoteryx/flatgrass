@@ -1,6 +1,6 @@
+use async_channel::{Sender, bounded};
 use std::cell::RefCell;
 use std::thread::JoinHandle;
-use async_channel::{Sender, bounded};
 
 #[derive(Debug)]
 pub struct SmolRuntime {

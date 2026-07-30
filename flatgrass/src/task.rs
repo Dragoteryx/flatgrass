@@ -1,4 +1,6 @@
 use crate::lua::Lua;
+#[cfg(feature = "tokio")]
+use ::tokio::runtime::Handle;
 use async_executor::LocalExecutor;
 use std::future::IntoFuture;
 
@@ -41,8 +43,6 @@ impl Runtime {
 	}
 
 	pub fn tick(&self) {
-		#[cfg(feature = "tokio")]
-		let _guard = self.tokio.handle().enter();
 		while self.executor.try_tick() {}
 	}
 
@@ -51,5 +51,10 @@ impl Runtime {
 		self.tokio.shutdown();
 		#[cfg(feature = "smol")]
 		self.smol.shutdown();
+	}
+
+	#[cfg(feature = "tokio")]
+	pub fn tokio_handle(&self) -> &Handle {
+		&self.tokio.handle()
 	}
 }

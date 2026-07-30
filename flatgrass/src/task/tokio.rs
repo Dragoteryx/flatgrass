@@ -1,7 +1,7 @@
+use async_channel::{Sender, bounded};
 use std::cell::RefCell;
 use std::thread::JoinHandle;
-use tokio::runtime::{Handle, Builder};
-use async_channel::{Sender, bounded};
+use tokio::runtime::{Builder, Handle};
 
 #[derive(Debug)]
 pub struct TokioRuntime {

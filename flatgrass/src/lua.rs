@@ -60,6 +60,8 @@ impl Lua {
 	/// Will abort the process if the closure panics to prevent unwinding through the FFI boundary.
 	pub unsafe fn enter<T>(ptr: *mut ffi::lua_State, func: impl FnOnce(&Self) -> T) -> T {
 		LUA.with(|lua| {
+			#[cfg(feature = "tokio")]
+			let _guard = lua.runtime.tokio_handle().enter();
 			let old_ptr = lua.ptr.replace(ptr);
 			let func = AssertUnwindSafe(|| func(lua));
 			match catch_unwind(func) {
