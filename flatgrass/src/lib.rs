@@ -35,4 +35,6 @@ pub mod prelude {
 	pub use crate::lua::{Lua, LuaError};
 	#[doc(no_inline)]
 	pub use crate::lua::{cfunction, table};
+	#[doc(no_inline)]
+	pub use crate::{entry, exit, function};
 }

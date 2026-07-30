@@ -5,9 +5,7 @@ use std::process::abort;
 use std::ptr::null_mut;
 
 #[cfg(feature = "async")]
-use crate::task::JoinHandle;
-#[cfg(feature = "async")]
-use avenir::Executor;
+use crate::task::Runtime;
 
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
@@ -36,7 +34,7 @@ thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
 		#[cfg(feature = "async")]
-		executor: Executor::new(),
+		runtime: Runtime::new(),
 	};
 }
 
@@ -45,7 +43,7 @@ thread_local! {
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
 	#[cfg(feature = "async")]
-	executor: Executor<'static>,
+	runtime: Runtime,
 }
 
 impl Lua {
@@ -104,6 +102,11 @@ impl Lua {
 	/// The associated Lua stack.
 	pub fn stack(&self) -> Stack<'_> {
 		unsafe { Stack::new(self.to_ptr()) }
+	}
+
+	#[cfg(feature = "async")]
+	pub fn async_runtime(&self) -> &Runtime {
+		&self.runtime
 	}
 
 	/// Forces garbage collection.
@@ -169,34 +172,18 @@ impl Lua {
 		}
 	}
 
-	#[inline]
-	#[cfg(feature = "async")]
-	pub fn spawn<F: IntoFuture + 'static>(&self, future: F) -> JoinHandle<F::Output> {
-		self.executor.spawn(future)
-	}
-
-	#[inline]
-	#[cfg(feature = "async")]
-	pub fn spawn_blocking<F, T>(&self, func: F) -> JoinHandle<T>
-	where
-		F: FnOnce() -> T + Send + 'static,
-		T: Send + 'static,
-	{
-		self.spawn(avenir::blocking(func))
-	}
-
 	#[doc(hidden)]
 	pub fn __fg_entry(&self) {
 		#[cfg(feature = "async")]
 		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
-			if let Value::Function(create) = timer.raw_get("Create") {
-				static FUNC: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-					Lua::enter(state, |lua| lua.executor.poll());
+			if let Value::Function(timer_create) = timer.raw_get("Create") {
+				static POLL: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
+					Lua::enter(state, |lua| lua.runtime.tick());
 					0
 				});
 
 				let id = format!("__fg_poll_{:p}", self);
-				let _ = create.call4(id, 0.0, 0.0, FUNC);
+				let _ = timer_create.call4(id, 0.0, 0.0, POLL);
 			}
 		}
 	}
@@ -204,6 +191,6 @@ impl Lua {
 	#[doc(hidden)]
 	pub fn __fg_exit(&self) {
 		#[cfg(feature = "async")]
-		self.executor.clear();
+		self.runtime.shutdown();
 	}
 }

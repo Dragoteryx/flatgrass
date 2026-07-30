@@ -186,10 +186,11 @@ impl FromLuaError<'static> {
 }
 
 impl<'a> FromLuaError<'a> {
-	pub fn expected_and_got<T: ?Sized + AsRef<str>, U: ?Sized + AsRef<str>>(
-		expected: &'a T,
-		got: &'a U,
-	) -> Self {
+	pub fn expected_and_got<T, U>(expected: &'a T, got: &'a U) -> Self
+	where
+		T: ?Sized + AsRef<str>,
+		U: ?Sized + AsRef<str>,
+	{
 		Self::ExpectedAndGot(
 			Cow::Borrowed(expected.as_ref()),
 			Cow::Borrowed(got.as_ref()),

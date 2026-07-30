@@ -14,7 +14,9 @@ serde = ["dep:serde", "either?/serde"]
 either = ["dep:either"]
 async = [
 	"flatgrass-macros?/async",
-	"dep:avenir"
+	"dep:async-channel",
+	"dep:async-executor",
+	"dep:async-io",
 ]
 
 [dependencies.flatgrass-ffi]
@@ -24,8 +26,16 @@ path = "../flatgrass-ffi"
 path = "../flatgrass-macros"
 optional = true
 
-[dependencies.avenir]
-git = "https://github.com/Dragoteryx/avenir.git"
+[dependencies.async-channel]
+version = "2.5"
+optional = true
+
+[dependencies.async-executor]
+version = "1"
+optional = true
+
+[dependencies.async-io]
+version = "2.6"
 optional = true
 
 [dependencies.either]

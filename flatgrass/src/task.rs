@@ -1,21 +1,46 @@
 use crate::lua::Lua;
-pub use avenir::JoinHandle;
+use async_channel::{Sender, bounded};
+use async_executor::LocalExecutor;
+use std::future::IntoFuture;
 
-#[inline]
-pub fn spawn<F: IntoFuture + 'static>(future: F) -> JoinHandle<F::Output> {
-	Lua::get(|lua| lua.spawn(future))
+#[doc(inline)]
+pub use async_executor::{FallibleTask, Task};
+
+pub fn spawn<F: IntoFuture + 'static>(future: F) -> Task<F::Output> {
+	Lua::get(|lua| lua.async_runtime().spawn(future))
 }
 
-#[inline]
-pub fn spawn_blocking<F, T>(func: F) -> JoinHandle<T>
-where
-	F: FnOnce() -> T + Send + 'static,
-	T: Send + 'static,
-{
-	Lua::get(|lua| lua.spawn_blocking(func))
+#[derive(Debug)]
+pub struct Runtime {
+	executor: LocalExecutor<'static>,
+	sender: Sender<()>,
 }
 
-#[inline]
-pub async fn yield_now() {
-	avenir::yield_now().await;
+impl Runtime {
+	pub(crate) fn new() -> Self {
+		let (sender, receiver) = bounded(1);
+		std::thread::spawn(move || {
+			async_io::block_on(async {
+				let _ = receiver.recv().await;
+			});
+		});
+
+		Self {
+			executor: LocalExecutor::new(),
+			sender,
+		}
+	}
+
+	pub fn spawn<F: IntoFuture + 'static>(&self, future: F) -> Task<F::Output> {
+		let future = future.into_future();
+		self.executor.spawn(future)
+	}
+
+	pub fn tick(&self) {
+		while self.executor.try_tick() {}
+	}
+
+	pub fn shutdown(&self) {
+		let _ = self.sender.try_send(());
+	}
 }
