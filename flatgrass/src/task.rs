@@ -1,60 +1,78 @@
 use crate::lua::Lua;
+use avenir::{blocking, Executor};
+use std::cell::Cell;
 #[cfg(feature = "tokio")]
 use ::tokio::runtime::Handle;
-use async_executor::LocalExecutor;
-use std::future::IntoFuture;
 
 #[doc(inline)]
-pub use async_executor::{FallibleTask, Task};
+pub use avenir::Task;
 
 #[cfg(feature = "tokio")]
 mod tokio;
-
-#[cfg(feature = "smol")]
-mod smol;
 
 pub fn spawn<F: IntoFuture + 'static>(future: F) -> Task<F::Output> {
 	Lua::get(|lua| lua.async_runtime().spawn(future))
 }
 
+pub fn spawn_blocking<F, T>(func: F) -> Task<T>
+where
+	F: FnOnce() -> T + Send + 'static,
+	T: Send + 'static,
+{
+	Lua::get(|lua| lua.async_runtime().spawn_blocking(func))
+}
+
 #[derive(Debug)]
 pub struct Runtime {
-	executor: LocalExecutor<'static>,
+	executor: Executor<'static>,
+	shutdown: Cell<bool>,
 	#[cfg(feature = "tokio")]
 	tokio: tokio::TokioRuntime,
-	#[cfg(feature = "smol")]
-	smol: smol::SmolRuntime,
 }
 
 impl Runtime {
 	pub(crate) fn new() -> Self {
 		Self {
-			executor: LocalExecutor::new(),
+			executor: Executor::new(),
+			shutdown: Cell::new(false),
 			#[cfg(feature = "tokio")]
 			tokio: tokio::TokioRuntime::new(),
-			#[cfg(feature = "smol")]
-			smol: smol::SmolRuntime::new(),
+		}
+	}
+
+	pub(crate) fn tick(&self) {
+		if !self.shutdown.get() {
+			self.executor.tick();
+		}
+	}
+
+	pub(crate) fn shutdown(&self) {
+		if self.shutdown.replace(true) {
+			self.executor.clear();
+			#[cfg(feature = "tokio")]
+			self.tokio.shutdown();
 		}
 	}
 
 	pub fn spawn<F: IntoFuture + 'static>(&self, future: F) -> Task<F::Output> {
-		let future = future.into_future();
-		self.executor.spawn(future)
+		if self.shutdown.get() {
+			panic!("Cannot spawn tasks on a shutdown runtime");
+		} else {
+			self.executor.spawn(future)
+		}
 	}
 
-	pub fn tick(&self) {
-		while self.executor.try_tick() {}
-	}
-
-	pub fn shutdown(&self) {
-		#[cfg(feature = "tokio")]
-		self.tokio.shutdown();
-		#[cfg(feature = "smol")]
-		self.smol.shutdown();
+	pub fn spawn_blocking<F, T>(&self, func: F) -> Task<T>
+	where
+		F: FnOnce() -> T + Send + 'static,
+		T: Send + 'static,
+	{
+		let future = blocking(func);
+		self.spawn(future)
 	}
 
 	#[cfg(feature = "tokio")]
 	pub fn tokio_handle(&self) -> &Handle {
-		&self.tokio.handle()
+		self.tokio.handle()
 	}
 }

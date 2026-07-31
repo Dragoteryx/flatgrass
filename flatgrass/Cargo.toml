@@ -12,13 +12,8 @@ default = ["macros"]
 either = ["dep:either"]
 macros = ["dep:flatgrass-macros"]
 serde = ["dep:serde", "either?/serde"]
-smol = ["async", "dep:async-io"]
-tokio = ["async", "dep:tokio"]
-async = [
-	"flatgrass-macros?/async",
-	"dep:async-executor",
-	"dep:async-channel",
-]
+async = ["flatgrass-macros?/async", "dep:avenir"]
+tokio = ["async", "dep:tokio", "dep:async-channel"]
 
 [dependencies.flatgrass-ffi]
 path = "../flatgrass-ffi"
@@ -36,15 +31,11 @@ version = "1"
 features = ["derive"]
 optional = true
 
+[dependencies.avenir]
+git = "https://github.com/Dragoteryx/avenir.git"
+optional = true
+
 [dependencies.async-channel]
-version = "2"
-optional = true
-
-[dependencies.async-executor]
-version = "1"
-optional = true
-
-[dependencies.async-io]
 version = "2"
 optional = true
 
