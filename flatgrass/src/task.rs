@@ -47,7 +47,7 @@ impl Runtime {
 	}
 
 	pub(crate) fn shutdown(&self) {
-		if self.shutdown.replace(true) {
+		if !self.shutdown.replace(true) {
 			self.executor.clear();
 			#[cfg(feature = "tokio")]
 			self.tokio.shutdown();
