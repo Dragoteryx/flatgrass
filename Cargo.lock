@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "avenir"
 version = "0.1.0"
-source = "git+https://github.com/Dragoteryx/avenir.git#7f5e0735d5bdb1db58a2f01ebec54cd21a988cee"
+source = "git+https://github.com/Dragoteryx/avenir.git#d2fe92fc9a1901ed265ac2a5cb955adab036670b"
 dependencies = [
  "crossbeam-queue",
  "futures-channel",

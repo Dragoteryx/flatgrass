@@ -68,7 +68,7 @@ impl Runtime {
 		T: Send + 'static,
 	{
 		let future = blocking(func);
-		self.spawn(future)
+		self.spawn(future).detach()
 	}
 
 	#[cfg(feature = "tokio")]
