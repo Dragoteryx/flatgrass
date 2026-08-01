@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::stack::Stack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua};
+use crate::lua::util::{FromLua, FromLuaError, ToLua};
 use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
@@ -134,21 +134,21 @@ impl Coroutine {
 		unsafe {
 			let stack = Stack::new(self.to_ptr());
 			let n_args = stack.push_many(args);
-			match ffi::lua_resume(stack.to_ptr(), n_args) {
-				status @ (ffi::LUA_YIELD | 0) => {
-					let n_ret = stack.size() as usize;
-					let mut values = Tuple::with_capacity(n_ret);
-					for _ in 0..n_ret {
-						values.push_front(stack.pop_value_unchecked());
-					}
-
-					if status == ffi::LUA_YIELD {
-						Ok(Resume::Yield(values))
-					} else {
-						Ok(Resume::Return(values))
-					}
+			let status = ffi::lua_resume(stack.to_ptr(), n_args);
+			if !matches!(status, ffi::LUA_YIELD | 0) {
+				Err(stack.pop_value_unchecked())
+			} else {
+				let n_ret = stack.size() as usize;
+				let mut values = Tuple::with_capacity(n_ret);
+				for _ in 0..n_ret {
+					values.push_front(stack.pop_value_unchecked());
 				}
-				_ => Err(stack.pop_value_unchecked()),
+
+				if status == ffi::LUA_YIELD {
+					Ok(Resume::Yield(values))
+				} else {
+					Ok(Resume::Return(values))
+				}
 			}
 		}
 	}

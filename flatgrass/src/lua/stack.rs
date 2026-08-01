@@ -1,5 +1,5 @@
 use crate::ffi;
-use crate::lua::traits::ToLua;
+use crate::lua::util::ToLua;
 use crate::lua::value::userdata::LightUserdata;
 use crate::lua::value::{Type, Value};
 use std::ffi::CStr;

@@ -21,14 +21,18 @@ mod macros;
 pub mod stack;
 use stack::Stack;
 
-pub mod traits;
-use traits::ToLua;
+pub mod util;
+use util::ToLua;
 
 pub mod value;
 use value::Value;
 
 mod error;
 pub use error::*;
+
+/// Serialization and deserialization support for Lua values.
+#[cfg(feature = "serde")]
+mod serde;
 
 thread_local! {
 	static LUA: Lua = Lua {

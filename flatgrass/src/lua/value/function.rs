@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::stack::Stack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua};
+use crate::lua::util::{FromLua, FromLuaError, ToLua};
 use crate::lua::value::{Reference, Tuple, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
@@ -94,7 +94,9 @@ impl Function {
 			stack.push_function(self);
 			let n_args = stack.push_many(args);
 			let status = ffi::lua_pcall(lua.to_ptr(), n_args, ffi::LUA_MULTRET, 0);
-			if status == 0 {
+			if status != 0 {
+				Err(stack.pop_value_unchecked())
+			} else {
 				let n_ret = (stack.size() - size) as usize;
 				let mut values = Tuple::with_capacity(n_ret);
 				for _ in 0..n_ret {
@@ -102,8 +104,6 @@ impl Function {
 				}
 
 				Ok(values)
-			} else {
-				Err(stack.pop_value_unchecked())
 			}
 		})
 	}

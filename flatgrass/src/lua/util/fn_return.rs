@@ -1,5 +1,5 @@
 use crate::lua::Lua;
-use crate::lua::traits::ToLua;
+use crate::lua::util::ToLua;
 use crate::lua::value::{Tuple, Value};
 use std::convert::Infallible;
 
@@ -92,7 +92,9 @@ impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua> LuaFnReturn<'_> for (T1, T2, T3
 	}
 }
 
-impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua, T5: ToLua> LuaFnReturn<'_> for (T1, T2, T3, T4, T5) {
+impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua, T5: ToLua> LuaFnReturn<'_>
+	for (T1, T2, T3, T4, T5)
+{
 	type Return = [Value; 5];
 	type Err = Infallible;
 

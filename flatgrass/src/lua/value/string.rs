@@ -1,7 +1,7 @@
 use crate::ffi;
 use crate::lua::Lua;
 use crate::lua::stack::Stack;
-use crate::lua::traits::{FromLua, FromLuaError, ToLua};
+use crate::lua::util::{FromLua, FromLuaError, ToLua};
 use crate::lua::value::{Reference, Type, Value};
 use std::borrow::Cow;
 use std::cmp::Ordering;

@@ -1,4 +1,5 @@
-/// Returns a raw Lua function containing glue code to call the given Rust function from Lua.\
+/// Returns a raw Lua function containing glue code to call the given Rust function from Lua.
+///
 /// This can only be used on functions annotated with `#[flatgrass::function]`.
 #[doc(hidden)]
 #[macro_export]

@@ -9,7 +9,7 @@ pub use flatgrass_ffi as ffi;
 #[cfg(feature = "macros")]
 pub use flatgrass_macros::{entry, exit, function};
 
-/// Safe abstraction over the Lua C API, you should probably use this.
+/// Safe abstraction over the Lua C API.
 pub mod lua;
 
 /// Garry's Mod types and libraries.
@@ -19,16 +19,12 @@ pub mod gm;
 #[cfg(feature = "async")]
 pub mod task;
 
-/// Serialization and deserialization support for Lua values.
-#[cfg(feature = "serde")]
-mod serde;
-
 /// Re-exports commonly used macros and types.
 pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::gm::printfg;
 	#[doc(no_inline)]
-	pub use crate::lua::traits::{FromLua, ToLua, Upvalue, Yield};
+	pub use crate::lua::util::{FromLua, ToLua, Upvalue, Yield};
 	#[doc(no_inline)]
 	pub use crate::lua::value::{Coroutine, Function, Table, Tuple, Userdata, Value};
 	#[doc(no_inline)]

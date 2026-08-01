@@ -1,5 +1,5 @@
 use crate::lua::Lua;
-use crate::lua::traits::ToLua;
+use crate::lua::util::ToLua;
 use crate::lua::value::Value;
 use std::error::Error;
 use std::fmt::{self, Display};
@@ -15,10 +15,8 @@ impl<T> LuaError<T> {
 		Lua::get(|lua| unsafe {
 			let stack = lua.stack();
 			stack.push_location(1);
-			Self {
-				location: stack.pop_lua_string_unchecked().to_string(),
-				source,
-			}
+			let location = stack.pop_lua_string_unchecked().to_string();
+			Self { location, source }
 		})
 	}
 

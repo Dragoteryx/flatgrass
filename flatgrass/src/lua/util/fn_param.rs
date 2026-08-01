@@ -2,7 +2,7 @@ use crate::ffi;
 use crate::ffi::lua_upvalueindex;
 use crate::lua::Lua;
 use crate::lua::error::LuaError;
-use crate::lua::traits::{FromLua, ToLua};
+use crate::lua::util::{FromLua, ToLua};
 use crate::lua::value::Tuple;
 use std::convert::Infallible;
 use std::error::Error;

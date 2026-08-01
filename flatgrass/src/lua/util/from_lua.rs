@@ -76,14 +76,14 @@ impl<T: FromLua> FromLua for Option<T> {
 
 #[cfg(feature = "either")]
 impl<L: FromLua, R: FromLua> FromLua for Either<L, R> {
-	type Err = R::Err;
+	type Err = L::Err;
 
 	fn from_lua(value: Value) -> Result<Self, Self::Err> {
 		match L::from_lua(value.clone()) {
 			Ok(ok) => Ok(Self::Left(ok)),
-			Err(_) => match R::from_lua(value) {
+			Err(err) => match R::from_lua(value) {
 				Ok(ok) => Ok(Self::Right(ok)),
-				Err(err) => Err(err),
+				Err(_) => Err(err),
 			},
 		}
 	}
@@ -91,9 +91,9 @@ impl<L: FromLua, R: FromLua> FromLua for Either<L, R> {
 	fn no_value() -> Result<Self, Self::Err> {
 		match L::no_value() {
 			Ok(ok) => Ok(Self::Left(ok)),
-			Err(_) => match R::no_value() {
+			Err(err) => match R::no_value() {
 				Ok(ok) => Ok(Self::Right(ok)),
-				Err(err) => Err(err),
+				Err(_) => Err(err),
 			},
 		}
 	}
