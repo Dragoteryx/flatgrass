@@ -1,12 +1,11 @@
-use async_channel::{Sender, bounded};
+use futures_channel::oneshot::{Sender, channel};
 use std::cell::RefCell;
 use std::thread::JoinHandle;
 use tokio::runtime::{Builder, Handle};
 
 #[derive(Debug)]
 pub struct TokioRuntime {
-	thread: RefCell<Option<JoinHandle<()>>>,
-	shutdown: Sender<()>,
+	shutdown: RefCell<Option<(Sender<()>, JoinHandle<()>)>>,
 	handle: Handle,
 }
 
@@ -17,17 +16,17 @@ impl TokioRuntime {
 			.build()
 			.expect("Failed to create Tokio runtime");
 
+		let (sender, receiver) = channel();
 		let handle = tokio.handle().clone();
-		let (shutdown, receiver) = bounded(1);
 		let thread = std::thread::spawn(move || {
 			tokio.block_on(async move {
-				let _ = receiver.recv().await;
+				let _ = receiver.await;
 			});
 		});
 
+		let shutdown = (sender, thread);
 		Self {
-			thread: RefCell::new(Some(thread)),
-			shutdown,
+			shutdown: RefCell::new(Some(shutdown)),
 			handle,
 		}
 	}
@@ -37,9 +36,9 @@ impl TokioRuntime {
 	}
 
 	pub fn shutdown(&self) {
-		let _ = self.shutdown.try_send(());
-		let thread = self.thread.borrow_mut().take();
-		if let Some(thread) = thread {
+		let shutdown = self.shutdown.borrow_mut().take();
+		if let Some((sender, thread)) = shutdown {
+			let _ = sender.send(());
 			let _ = thread.join();
 		}
 	}

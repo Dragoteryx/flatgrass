@@ -1,8 +1,8 @@
 use crate::lua::Lua;
-use avenir::{blocking, Executor};
-use std::cell::Cell;
 #[cfg(feature = "tokio")]
 use ::tokio::runtime::Handle;
+use avenir::{Executor, blocking};
+use std::cell::Cell;
 
 #[doc(inline)]
 pub use avenir::Task;
