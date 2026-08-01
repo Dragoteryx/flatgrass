@@ -13,14 +13,14 @@ pub enum Return<T> {
 	Yield(T),
 }
 
-pub trait LuaFnReturn: Sized {
+pub trait LuaFnReturn<'l>: Sized {
 	type Return: IntoIterator<Item: ToLua>;
 	type Err: ToLua;
 
-	fn lua_fn_return(self, lua: &Lua) -> Result<Return<Self::Return>, Self::Err>;
+	fn lua_fn_return(self, lua: &'l Lua) -> Result<Return<Self::Return>, Self::Err>;
 }
 
-impl<T: ToLua> LuaFnReturn for T {
+impl<T: ToLua> LuaFnReturn<'_> for T {
 	type Return = [T; 1];
 	type Err = Infallible;
 
@@ -29,7 +29,7 @@ impl<T: ToLua> LuaFnReturn for T {
 	}
 }
 
-impl<T: ToLua> LuaFnReturn for Tuple<T> {
+impl<T: ToLua> LuaFnReturn<'_> for Tuple<T> {
 	type Return = Self;
 	type Err = Infallible;
 
@@ -38,7 +38,7 @@ impl<T: ToLua> LuaFnReturn for Tuple<T> {
 	}
 }
 
-impl LuaFnReturn for () {
+impl LuaFnReturn<'_> for () {
 	type Return = [Value; 0];
 	type Err = Infallible;
 
@@ -47,7 +47,7 @@ impl LuaFnReturn for () {
 	}
 }
 
-impl<T1: ToLua> LuaFnReturn for (T1,) {
+impl<T1: ToLua> LuaFnReturn<'_> for (T1,) {
 	type Return = [Value; 1];
 	type Err = Infallible;
 
@@ -56,7 +56,7 @@ impl<T1: ToLua> LuaFnReturn for (T1,) {
 	}
 }
 
-impl<T1: ToLua, T2: ToLua> LuaFnReturn for (T1, T2) {
+impl<T1: ToLua, T2: ToLua> LuaFnReturn<'_> for (T1, T2) {
 	type Return = [Value; 2];
 	type Err = Infallible;
 
@@ -65,7 +65,7 @@ impl<T1: ToLua, T2: ToLua> LuaFnReturn for (T1, T2) {
 	}
 }
 
-impl<T1: ToLua, T2: ToLua, T3: ToLua> LuaFnReturn for (T1, T2, T3) {
+impl<T1: ToLua, T2: ToLua, T3: ToLua> LuaFnReturn<'_> for (T1, T2, T3) {
 	type Return = [Value; 3];
 	type Err = Infallible;
 
@@ -78,7 +78,7 @@ impl<T1: ToLua, T2: ToLua, T3: ToLua> LuaFnReturn for (T1, T2, T3) {
 	}
 }
 
-impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua> LuaFnReturn for (T1, T2, T3, T4) {
+impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua> LuaFnReturn<'_> for (T1, T2, T3, T4) {
 	type Return = [Value; 4];
 	type Err = Infallible;
 
@@ -92,7 +92,7 @@ impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua> LuaFnReturn for (T1, T2, T3, T4
 	}
 }
 
-impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua, T5: ToLua> LuaFnReturn for (T1, T2, T3, T4, T5) {
+impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua, T5: ToLua> LuaFnReturn<'_> for (T1, T2, T3, T4, T5) {
 	type Return = [Value; 5];
 	type Err = Infallible;
 
@@ -107,21 +107,21 @@ impl<T1: ToLua, T2: ToLua, T3: ToLua, T4: ToLua, T5: ToLua> LuaFnReturn for (T1,
 	}
 }
 
-impl<T: LuaFnReturn> LuaFnReturn for Yield<T> {
+impl<'l, T: LuaFnReturn<'l>> LuaFnReturn<'l> for Yield<T> {
 	type Return = T::Return;
 	type Err = T::Err;
 
-	fn lua_fn_return(self, lua: &Lua) -> Result<Return<Self::Return>, Self::Err> {
+	fn lua_fn_return(self, lua: &'l Lua) -> Result<Return<Self::Return>, Self::Err> {
 		let (Return::Values(ret) | Return::Yield(ret)) = self.0.lua_fn_return(lua)?;
 		Ok(Return::Yield(ret))
 	}
 }
 
-impl<T: LuaFnReturn> LuaFnReturn for Return<T> {
+impl<'l, T: LuaFnReturn<'l>> LuaFnReturn<'l> for Return<T> {
 	type Return = T::Return;
 	type Err = T::Err;
 
-	fn lua_fn_return(self, lua: &Lua) -> Result<Return<Self::Return>, Self::Err> {
+	fn lua_fn_return(self, lua: &'l Lua) -> Result<Return<Self::Return>, Self::Err> {
 		let is_yield = matches!(self, Self::Yield(_));
 		let (Self::Values(ret) | Self::Yield(ret)) = self;
 		let (Return::Values(ret) | Return::Yield(ret)) = ret.lua_fn_return(lua)?;
@@ -133,11 +133,11 @@ impl<T: LuaFnReturn> LuaFnReturn for Return<T> {
 	}
 }
 
-impl<T: LuaFnReturn<Err = Infallible>, E: ToLua> LuaFnReturn for Result<T, E> {
+impl<'l, T: LuaFnReturn<'l, Err = Infallible>, E: ToLua> LuaFnReturn<'l> for Result<T, E> {
 	type Return = T::Return;
 	type Err = E;
 
-	fn lua_fn_return(self, lua: &Lua) -> Result<Return<Self::Return>, E> {
+	fn lua_fn_return(self, lua: &'l Lua) -> Result<Return<Self::Return>, E> {
 		self?.lua_fn_return(lua).map_err(|err| match err {})
 	}
 }

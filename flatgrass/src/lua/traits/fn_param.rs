@@ -4,6 +4,7 @@ use crate::lua::Lua;
 use crate::lua::error::LuaError;
 use crate::lua::traits::{FromLua, ToLua};
 use crate::lua::value::Tuple;
+use std::convert::Infallible;
 use std::error::Error;
 use std::ffi::CStr;
 use std::fmt::{self, Display};
@@ -13,13 +14,21 @@ use std::mem::replace;
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upvalue<T>(pub T);
 
-pub trait LuaFnParam: Sized {
+pub trait LuaFnParam<'l>: Sized {
 	type Err: ToLua;
 
-	fn lua_fn_param(lua: &Lua, arg: &mut i32, upv: &mut i32) -> Result<Self, Self::Err>;
+	fn lua_fn_param(lua: &'l Lua, arg: &mut i32, upv: &mut i32) -> Result<Self, Self::Err>;
 }
 
-impl<T: FromLua<Err: ToString>> LuaFnParam for T {
+impl<'l> LuaFnParam<'l> for &'l Lua {
+	type Err = Infallible;
+
+	fn lua_fn_param(lua: &'l Lua, _: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
+		Ok(lua)
+	}
+}
+
+impl<T: FromLua<Err: ToString>> LuaFnParam<'_> for T {
 	type Err = LuaError<BadArgumentError<T::Err>>;
 
 	fn lua_fn_param(lua: &Lua, arg: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
@@ -33,7 +42,7 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for T {
 	}
 }
 
-impl<T: FromLua<Err: ToString>> LuaFnParam for Upvalue<T> {
+impl<T: FromLua<Err: ToString>> LuaFnParam<'_> for Upvalue<T> {
 	type Err = LuaError<T::Err>;
 
 	fn lua_fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
@@ -51,7 +60,7 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for Upvalue<T> {
 	}
 }
 
-impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<T> {
+impl<T: FromLua<Err: ToString>> LuaFnParam<'_> for Tuple<T> {
 	type Err = LuaError<BadArgumentError<T::Err>>;
 
 	fn lua_fn_param(lua: &Lua, arg: &mut i32, _: &mut i32) -> Result<Self, Self::Err> {
@@ -67,7 +76,7 @@ impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<T> {
 	}
 }
 
-impl<T: FromLua<Err: ToString>> LuaFnParam for Tuple<Upvalue<T>> {
+impl<T: FromLua<Err: ToString>> LuaFnParam<'_> for Tuple<Upvalue<T>> {
 	type Err = LuaError<T::Err>;
 
 	fn lua_fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
