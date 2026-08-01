@@ -179,13 +179,13 @@ impl Lua {
 		#[cfg(feature = "async")]
 		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
 			if let Value::Function(timer_create) = timer.raw_get("Create") {
-				static POLL: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
+				static TICK: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
 					Lua::enter(state, |lua| lua.runtime.tick());
 					0
 				});
 
 				let id = format!("__fg_poll_{:p}", self);
-				let _ = timer_create.call4(id, 0.0, 0.0, POLL);
+				let _ = timer_create.call4(id, 0.0, 0.0, TICK);
 			}
 		}
 	}
