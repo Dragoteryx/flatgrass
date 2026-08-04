@@ -1,6 +1,7 @@
-use crate::lua::value::{Table, Value};
+use crate::lua::{LuaString, Table, Value};
 use std::collections::*;
 use std::convert::Infallible;
+use std::ffi::{CStr, CString};
 use std::marker::{PhantomData, PhantomPinned};
 use std::num::NonZero;
 use std::rc::Rc;
@@ -8,9 +9,6 @@ use std::sync::Arc;
 
 #[cfg(feature = "either")]
 use either::Either;
-
-#[cfg(feature = "macros")]
-pub use flatgrass_macros::ToLua;
 
 pub trait ToLua {
 	fn to_lua_by_ref(&self) -> Value;
@@ -158,6 +156,30 @@ impl<L: ToLua, R: ToLua> ToLua for Either<L, R> {
 impl ToLua for bool {
 	fn to_lua_by_ref(&self) -> Value {
 		Value::Bool(*self)
+	}
+}
+
+impl ToLua for str {
+	fn to_lua_by_ref(&self) -> Value {
+		LuaString::from(self).to_lua()
+	}
+}
+
+impl ToLua for String {
+	fn to_lua_by_ref(&self) -> Value {
+		self.as_str().to_lua()
+	}
+}
+
+impl ToLua for CStr {
+	fn to_lua_by_ref(&self) -> Value {
+		LuaString::from(self).to_lua()
+	}
+}
+
+impl ToLua for CString {
+	fn to_lua_by_ref(&self) -> Value {
+		self.as_c_str().to_lua()
 	}
 }
 

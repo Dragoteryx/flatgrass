@@ -1,7 +1,5 @@
 use crate::ffi;
-use crate::lua::util::ToLua;
-use crate::lua::value::userdata::LightUserdata;
-use crate::lua::value::{Type, Value};
+use crate::lua::{LightUserdata, ToLua, Type, Value};
 use std::ffi::CStr;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;

@@ -1,28 +1,28 @@
 use crate::ffi;
-use crate::lua::Lua;
-use crate::lua::stack::Stack;
-use crate::lua::util::{FromLua, FromLuaError, ToLua};
+use crate::lua::error::FromLuaError;
+use crate::lua::{FromLua, Lua, Stack, ToLua};
 use std::cell::UnsafeCell;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::mem::forget;
 
-mod tuple;
-pub use tuple::*;
+mod string;
+pub use string::*;
 
 pub mod coroutine;
+#[doc(no_inline)]
 pub use coroutine::Coroutine;
 
 pub mod function;
+#[doc(no_inline)]
 pub use function::Function;
 
-pub mod string;
-pub use string::LuaString;
-
 pub mod table;
+#[doc(no_inline)]
 pub use table::Table;
 
 pub mod userdata;
+#[doc(no_inline)]
 pub use userdata::{LightUserdata, Userdata};
 
 #[derive(Default, Clone, PartialEq, PartialOrd)]

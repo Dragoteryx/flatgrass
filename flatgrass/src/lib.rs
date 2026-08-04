@@ -5,7 +5,7 @@
 #[doc(no_inline)]
 pub use flatgrass_ffi as ffi;
 
-// Import the macros used to define functions.
+// Re-export the macros used to define functions.
 #[cfg(feature = "macros")]
 pub use flatgrass_macros::{entry, exit, function};
 
@@ -24,13 +24,13 @@ pub mod prelude {
 	#[doc(no_inline)]
 	pub use crate::gm::printfg;
 	#[doc(no_inline)]
-	pub use crate::lua::util::{FromLua, ToLua, Upvalue, Yield};
+	pub use crate::lua::Lua;
 	#[doc(no_inline)]
-	pub use crate::lua::value::{Coroutine, Function, Table, Tuple, Userdata, Value};
+	pub use crate::lua::util::{Tuple, Upvalue, Yield};
 	#[doc(no_inline)]
-	pub use crate::lua::{Lua, LuaError};
+	pub use crate::lua::{Coroutine, FromLua, Function, Table, ToLua, Userdata, Value};
 	#[doc(no_inline)]
-	pub use crate::lua::{cfunction, table};
+	pub use crate::lua::{call, cfunction, resume, table};
 	#[doc(no_inline)]
 	pub use crate::{entry, exit, function};
 }

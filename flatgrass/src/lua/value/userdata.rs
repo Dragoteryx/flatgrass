@@ -1,16 +1,15 @@
 use crate::ffi;
-use crate::lua::Lua;
-use crate::lua::stack::Stack;
-use crate::lua::util::{FromLua, FromLuaError, ToLua};
-use crate::lua::value::{Reference, Type, Value};
+use crate::lua::error::FromLuaError;
+use crate::lua::value::Reference;
+use crate::lua::{FromLua, Lua, Stack, ToLua, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
 
 pub type LightUserdata = *mut crate::ffi::libc::c_void;
 
-#[repr(transparent)]
 #[derive(Clone)]
+#[repr(transparent)]
 pub struct Userdata {
 	reference: Rc<Reference>,
 }

@@ -5,7 +5,7 @@ use std::process::abort;
 use std::ptr::null_mut;
 
 #[cfg(feature = "async")]
-use crate::task::Runtime;
+use crate::task::AsyncRuntime;
 
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
@@ -15,30 +15,31 @@ macro_rules! stack_overflow {
 }
 
 #[doc(inline)]
-pub use crate::{cfunction, table};
+pub use crate::{call, cfunction, resume, table};
 mod macros;
-
-pub mod stack;
-use stack::Stack;
-
-pub mod util;
-use util::ToLua;
-
-pub mod value;
-use value::Value;
-
-mod error;
-pub use error::*;
 
 /// Serialization and deserialization support for Lua values.
 #[cfg(feature = "serde")]
 mod serde;
 
+mod stack;
+pub use stack::*;
+
+mod value;
+pub use value::*;
+
+mod traits;
+pub use traits::*;
+
+pub mod util;
+
+pub mod error;
+
 thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
 		#[cfg(feature = "async")]
-		runtime: Runtime::new(),
+		runtime: AsyncRuntime::new(),
 	};
 }
 
@@ -47,7 +48,7 @@ thread_local! {
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
 	#[cfg(feature = "async")]
-	runtime: Runtime,
+	runtime: AsyncRuntime,
 }
 
 impl Lua {
@@ -57,7 +58,9 @@ impl Lua {
 	///
 	/// # Safety
 	///
-	/// The Lua state passed as an argument must be valid.
+	/// The Lua state passed as an argument must be valid.\
+	/// Created Lua objects contained by the closure must be used within the same Lua context as the one they were created in.\
+	/// Using the Lua state provided by GMod guarantees that.
 	///
 	/// # Panics
 	///
@@ -111,29 +114,8 @@ impl Lua {
 	}
 
 	#[cfg(feature = "async")]
-	pub fn async_runtime(&self) -> &Runtime {
+	pub fn async_runtime(&self) -> &AsyncRuntime {
 		&self.runtime
-	}
-
-	/// Forces garbage collection.
-	pub fn gc_collect(&self) {
-		unsafe {
-			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCCOLLECT, 0);
-		}
-	}
-
-	/// Restarts the garbage collector.
-	pub fn gc_restart(&self) {
-		unsafe {
-			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCRESTART, 0);
-		}
-	}
-
-	/// Stops the garbage collector.
-	pub fn gc_stop(&self) {
-		unsafe {
-			ffi::lua_gc(self.to_ptr(), ffi::LUA_GCSTOP, 0);
-		}
 	}
 
 	/// Checks if two values are equal according to Lua semantics.
@@ -189,7 +171,7 @@ impl Lua {
 				});
 
 				let id = format!("__fg_poll_{:p}", self);
-				let _ = timer_create.call4(id, 0.0, 0.0, TICK);
+				let _ = call!(timer_create: id, 0.0, 0.0, TICK);
 			}
 		}
 	}

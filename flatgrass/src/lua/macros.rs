@@ -12,6 +12,28 @@ macro_rules! cfunction {
 	};
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! call {
+	($func:ident) => {
+		$crate::lua::Function::call(&$func, [] as [$crate::lua::Value; 0])
+	};
+	($func:ident: $($arg:expr),+ $(,)?) => {
+		$crate::lua::Function::call(&$func, [$($crate::lua::ToLua::to_lua($arg)),+])
+	};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! resume {
+	($cor:ident) => {
+		$crate::lua::Coroutine::resume(&$cor, [] as [$crate::lua::Value; 0])
+	};
+	($cor:ident: $($arg:expr),+ $(,)?) => {
+		$crate::lua::Coroutine::resume(&$cor, [$($crate::lua::ToLua::to_lua($arg)),+])
+	};
+}
+
 /// Create a new table with the given values.
 ///
 /// # Examples
@@ -45,23 +67,23 @@ macro_rules! cfunction {
 #[macro_export]
 macro_rules! table {
 	($($value:expr),* $(,)?) => {{
-		let table = $crate::lua::value::Table::new();
+		let table = $crate::lua::Table::new();
 		$( table.raw_push($value); )*
 		table
 	}};
 	($value:expr; $n:expr) => {{
-		let table = $crate::lua::value::Table::new();
-		let value = $crate::lua::traits::ToLua::to_lua($value);
+		let table = $crate::lua::Table::new();
+		let value = $crate::lua::ToLua::to_lua($value);
 		for _ in 0usize..$n { table.raw_push(&value); }
 		table
 	}};
 	($($key:ident : $value:expr),* $(,)?) => {{
-		let table = $crate::lua::value::Table::new();
+		let table = $crate::lua::Table::new();
 		$( table.raw_set(::core::stringify!($key), $value); )*
 		table
 	}};
 	($([$key:expr] : $value:expr),* $(,)?) => {{
-		let table = $crate::lua::value::Table::new();
+		let table = $crate::lua::Table::new();
 		$( table.raw_set($key, $value); )*
 		table
 	}};

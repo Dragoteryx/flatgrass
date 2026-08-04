@@ -1,6 +1,5 @@
 use proc_macro2::*;
-use quote::format_ident;
-use quote::{quote, quote_spanned};
+use quote::{format_ident, quote};
 use syn::spanned::Spanned;
 use syn::*;
 
@@ -11,13 +10,17 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 
 	for param in &func.sig.generics.params {
 		if let GenericParam::Type(param) = param {
-			errors.push(quote_spanned! { param.span() =>
-				compile_error!("the entry function cannot have type parameters")
-			});
+			let err = Error::new(
+				param.span(),
+				"the entry function cannot have type parameters",
+			);
+			errors.push(err.to_compile_error());
 		} else if let GenericParam::Const(param) = param {
-			errors.push(quote_spanned! { param.span() =>
-				compile_error!("the entry function cannot have const parameters")
-			});
+			let err = Error::new(
+				param.span(),
+				"the entry function cannot have const parameters",
+			);
+			errors.push(err.to_compile_error());
 		}
 	}
 
@@ -25,9 +28,9 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 		false => quote! { 0 },
 		true => quote! {
 			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
-				let __fg_func = ::flatgrass::lua::value::Function::new(::flatgrass::cfunction!(#ident));
+				let __fg_func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
 				__fg_lua.__fg_entry();
-				match __fg_func.call0() {
+				match ::flatgrass::lua::call!(__fg_func) {
 					Ok(_) => false,
 					Err(__fg_err) => {
 						__fg_lua.stack().clear();
@@ -46,7 +49,7 @@ pub fn generate_entry(func: &ItemFn) -> TokenStream {
 	quote! {
 		#tokens
 
-		#(#errors;)*
+		#(#errors)*
 
 		#[doc(hidden)]
 		#[unsafe(no_mangle)]
@@ -64,13 +67,17 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 
 	for param in &func.sig.generics.params {
 		if let GenericParam::Type(param) = param {
-			errors.push(quote_spanned! { param.span() =>
-				compile_error!("the exit function cannot have type parameters")
-			});
+			let err = Error::new(
+				param.span(),
+				"the exit function cannot have type parameters",
+			);
+			errors.push(err.to_compile_error());
 		} else if let GenericParam::Const(param) = param {
-			errors.push(quote_spanned! { param.span() =>
-				compile_error!("the exit function cannot have const parameters")
-			});
+			let err = Error::new(
+				param.span(),
+				"the exit function cannot have const parameters",
+			);
+			errors.push(err.to_compile_error());
 		}
 	}
 
@@ -78,8 +85,8 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 		false => quote! { 0 },
 		true => quote! {
 			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
-				let __fg_func = ::flatgrass::lua::value::Function::new(::flatgrass::cfunction!(#ident));
-				let __fg_res = __fg_func.call0();
+				let __fg_func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
+				let __fg_res = ::flatgrass::lua::call!(__fg_func);
 				__fg_lua.__fg_exit();
 				match __fg_res {
 					Ok(_) => false,
@@ -100,7 +107,7 @@ pub fn generate_exit(func: &ItemFn) -> TokenStream {
 	quote! {
 		#tokens
 
-		#(#errors;)*
+		#(#errors)*
 
 		#[doc(hidden)]
 		#[unsafe(no_mangle)]
@@ -119,25 +126,26 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 	let mut errors = Vec::new();
 
 	if let Some(unsafety) = &func.sig.unsafety {
-		errors.push(quote_spanned! { unsafety.span =>
-			compile_error!("Lua functions cannot be unsafe")
-		});
+		let err = Error::new(unsafety.span(), "Lua functions cannot be unsafe");
+		errors.push(err.to_compile_error());
 	}
 
 	if let Some(asyncness) = &func.sig.asyncness {
 		if cfg!(not(feature = "async")) {
-			errors.push(quote_spanned! { asyncness.span =>
-				compile_error!("async Lua functions require the `async` feature")
-			});
+			let err = Error::new(
+				asyncness.span(),
+				"async Lua functions require the `async` feature",
+			);
+			errors.push(err.to_compile_error());
 		}
 	}
 
 	let body = match errors.is_empty() {
 		false => quote! { 0 },
 		true => {
-			let args = func.sig.inputs.iter().map(|input| {
-				quote_spanned! { input.span() =>
-					match ::flatgrass::lua::util::LuaFnParam::lua_fn_param(__fg_lua, &mut __fg_arg, &mut __fg_upv) {
+			let args = func.sig.inputs.iter().map(|_| {
+				quote! {
+					match ::flatgrass::lua::FnParam::fn_param(__fg_lua, &mut __fg_arg, &mut __fg_upv) {
 						::core::result::Result::Ok(__fg_value) => __fg_value,
 						::core::result::Result::Err(__fg_err) => {
 							__fg_lua.stack().clear();
@@ -148,18 +156,13 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 				}
 			});
 
-			let ret_span = match &func.sig.output {
-				ReturnType::Default => func.sig.output.span(),
-				ReturnType::Type(_, ty) => ty.span(),
-			};
-
 			let call = match &func.sig.asyncness {
-				Some(_) => quote_spanned! { ret_span =>
+				Some(_) => quote! {
 					__fg_lua.async_runtime().spawn(#ident #generics_turbofish (#(#args),*)).detach();
 					::core::option::Option::Some(::flatgrass::lua::util::Return::Values(0))
 				},
-				None => quote_spanned! { ret_span =>
-					match ::flatgrass::lua::util::LuaFnReturn::lua_fn_return(#ident #generics_turbofish (#(#args),*), __fg_lua) {
+				None => quote! {
+					match ::flatgrass::lua::FnReturn::fn_return(#ident #generics_turbofish (#(#args),*), __fg_lua) {
 						::core::result::Result::Ok(::flatgrass::lua::util::Return::Values(values)) =>
 							::core::option::Option::Some(::flatgrass::lua::util::Return::Values(__fg_lua.stack().push_many(values))),
 						::core::result::Result::Ok(::flatgrass::lua::util::Return::Yield(values)) =>
@@ -193,7 +196,7 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 	quote! {
 		#func
 
-		#(#errors;)*
+		#(#errors)*
 
 		#[doc(hidden)]
 		#[doc = "Generated by the `#[flatgrass::function]` attribute macro."]

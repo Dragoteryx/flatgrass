@@ -1,9 +1,13 @@
-use crate::lua::Lua;
+use crate::lua::{LightUserdata, Lua};
 use avenir::{Executor, blocking};
-use std::cell::Cell;
+use futures_channel::oneshot::Sender;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 
 #[doc(inline)]
 pub use avenir::Task;
+
+pub mod time;
 
 pub fn spawn<F: IntoFuture + 'static>(future: F) -> Task<F::Output> {
 	Lua::get(|lua| lua.async_runtime().spawn(future))
@@ -18,18 +22,21 @@ where
 }
 
 #[derive(Debug)]
-pub struct Runtime {
+pub struct AsyncRuntime {
 	executor: Executor<'static>,
 	shutdown: Cell<bool>,
+	timers: TaskMap<()>,
+
 	#[cfg(feature = "tokio")]
 	tokio: TokioRuntime,
 }
 
-impl Runtime {
+impl AsyncRuntime {
 	pub(crate) fn new() -> Self {
 		Self {
 			executor: Executor::new(),
 			shutdown: Cell::new(false),
+			timers: TaskMap::default(),
 			#[cfg(feature = "tokio")]
 			tokio: TokioRuntime::new(),
 		}
@@ -121,6 +128,26 @@ mod tokio_runtime {
 				let _ = sender.send(());
 				let _ = thread.join();
 			}
+		}
+	}
+}
+
+#[derive(Default, Debug)]
+struct TaskMap<T> {
+	tasks: RefCell<HashMap<LightUserdata, Box<Sender<T>>>>,
+}
+
+impl<T> TaskMap<T> {
+	pub fn insert(&self, sender: Sender<T>) -> LightUserdata {
+		let mut sender = Box::new(sender);
+		let ptr = (&raw mut *sender).cast();
+		self.tasks.borrow_mut().insert(ptr, sender);
+		ptr
+	}
+
+	pub fn wake(&self, ptr: LightUserdata, data: T) {
+		if let Some(sender) = self.tasks.borrow_mut().remove(&ptr) {
+			let _ = sender.send(data);
 		}
 	}
 }

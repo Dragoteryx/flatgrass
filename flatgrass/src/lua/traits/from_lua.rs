@@ -1,8 +1,7 @@
-use crate::lua::value::{Type, Value};
-use std::borrow::Cow;
+use crate::lua::error::FromLuaError;
+use crate::lua::{LuaString, Type, Value};
 use std::convert::Infallible;
-use std::error::Error;
-use std::fmt::{self, Display};
+use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -168,51 +167,26 @@ impl FromLua for f64 {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FromLuaError<'a> {
-	ExpectedAndGot(Cow<'a, str>, Cow<'a, str>),
-	Expected(Cow<'a, str>),
-	NoValue,
-}
+impl FromLua for String {
+	type Err = FromLuaError<'static>;
 
-impl FromLuaError<'static> {
-	pub const fn expected_and_got_type(expected: Type, got: Type) -> Self {
-		Self::ExpectedAndGot(Cow::Borrowed(expected.name()), Cow::Borrowed(got.name()))
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		LuaString::from_lua(value).map(|lstr| lstr.to_string())
 	}
 
-	pub const fn expected_type(expected: Type) -> Self {
-		Self::Expected(Cow::Borrowed(expected.name()))
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::expected_type(Type::String))
 	}
 }
 
-impl<'a> FromLuaError<'a> {
-	pub fn expected_and_got<T, U>(expected: &'a T, got: &'a U) -> Self
-	where
-		T: ?Sized + AsRef<str>,
-		U: ?Sized + AsRef<str>,
-	{
-		Self::ExpectedAndGot(
-			Cow::Borrowed(expected.as_ref()),
-			Cow::Borrowed(got.as_ref()),
-		)
+impl FromLua for CString {
+	type Err = FromLuaError<'static>;
+
+	fn from_lua(value: Value) -> Result<Self, Self::Err> {
+		LuaString::from_lua(value).map(|lstr| lstr.to_c_str().to_owned())
 	}
 
-	pub fn expected<T: ?Sized + AsRef<str>>(expected: &'a T) -> Self {
-		Self::Expected(Cow::Borrowed(expected.as_ref()))
-	}
-
-	pub const fn no_value() -> Self {
-		Self::NoValue
-	}
-}
-
-impl Error for FromLuaError<'_> {}
-impl Display for FromLuaError<'_> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match self {
-			Self::ExpectedAndGot(expected, got) => write!(f, "{expected} expected, got {got}"),
-			Self::Expected(expected) => write!(f, "{expected} expected, got no value"),
-			Self::NoValue => write!(f, "got no value"),
-		}
+	fn no_value() -> Result<Self, Self::Err> {
+		Err(FromLuaError::expected_type(Type::String))
 	}
 }

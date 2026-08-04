@@ -1,15 +1,15 @@
 use crate::ffi;
-use crate::lua::Lua;
-use crate::lua::stack::Stack;
-use crate::lua::util::{FromLua, FromLuaError, ToLua};
-use crate::lua::value::{Reference, Tuple, Type, Value};
+use crate::lua::error::FromLuaError;
+use crate::lua::util::Tuple;
+use crate::lua::value::Reference;
+use crate::lua::{FromLua, Lua, Stack, ToLua, Type, Value};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-#[repr(transparent)]
 #[derive(Clone)]
+#[repr(transparent)]
 pub struct Function {
 	reference: Rc<Reference>,
 }
@@ -106,98 +106,6 @@ impl Function {
 				Ok(values)
 			}
 		})
-	}
-
-	pub fn call0(&self) -> Result<Tuple, Value> {
-		self.call::<[u8; _]>([])
-	}
-
-	pub fn call1<T: ToLua>(&self, arg: T) -> Result<Tuple, Value> {
-		self.call([arg])
-	}
-
-	pub fn call2<T1, T2>(&self, arg1: T1, arg2: T2) -> Result<Tuple, Value>
-	where
-		T1: ToLua,
-		T2: ToLua,
-	{
-		self.call([arg1.to_lua(), arg2.to_lua()])
-	}
-
-	pub fn call3<T1, T2, T3>(&self, arg1: T1, arg2: T2, arg3: T3) -> Result<Tuple, Value>
-	where
-		T1: ToLua,
-		T2: ToLua,
-		T3: ToLua,
-	{
-		self.call([arg1.to_lua(), arg2.to_lua(), arg3.to_lua()])
-	}
-
-	pub fn call4<T1, T2, T3, T4>(
-		&self,
-		arg1: T1,
-		arg2: T2,
-		arg3: T3,
-		arg4: T4,
-	) -> Result<Tuple, Value>
-	where
-		T1: ToLua,
-		T2: ToLua,
-		T3: ToLua,
-		T4: ToLua,
-	{
-		self.call([arg1.to_lua(), arg2.to_lua(), arg3.to_lua(), arg4.to_lua()])
-	}
-
-	pub fn call5<T1, T2, T3, T4, T5>(
-		&self,
-		arg1: T1,
-		arg2: T2,
-		arg3: T3,
-		arg4: T4,
-		arg5: T5,
-	) -> Result<Tuple, Value>
-	where
-		T1: ToLua,
-		T2: ToLua,
-		T3: ToLua,
-		T4: ToLua,
-		T5: ToLua,
-	{
-		self.call([
-			arg1.to_lua(),
-			arg2.to_lua(),
-			arg3.to_lua(),
-			arg4.to_lua(),
-			arg5.to_lua(),
-		])
-	}
-
-	pub fn call6<T1, T2, T3, T4, T5, T6>(
-		&self,
-		arg1: T1,
-		arg2: T2,
-		arg3: T3,
-		arg4: T4,
-		arg5: T5,
-		arg6: T6,
-	) -> Result<Tuple, Value>
-	where
-		T1: ToLua,
-		T2: ToLua,
-		T3: ToLua,
-		T4: ToLua,
-		T5: ToLua,
-		T6: ToLua,
-	{
-		self.call([
-			arg1.to_lua(),
-			arg2.to_lua(),
-			arg3.to_lua(),
-			arg4.to_lua(),
-			arg5.to_lua(),
-			arg6.to_lua(),
-		])
 	}
 }
 
