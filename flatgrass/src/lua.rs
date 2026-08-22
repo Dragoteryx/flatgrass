@@ -1,5 +1,5 @@
 use crate::ffi;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
 use std::ptr::null_mut;
@@ -38,15 +38,18 @@ pub mod error;
 thread_local! {
 	static LUA: Lua = Lua {
 		ptr: Cell::new(null_mut()),
+		on_tick: RefCell::new(Vec::new()),
+		on_exit: RefCell::new(Vec::new()),
 		#[cfg(feature = "async")]
 		runtime: AsyncRuntime::new(),
 	};
 }
 
 /// Safe abstraction over the Lua C API.
-#[derive(Debug)]
 pub struct Lua {
 	ptr: Cell<*mut ffi::lua_State>,
+	on_tick: RefCell<Vec<Box<dyn FnMut(&Self)>>>,
+	on_exit: RefCell<Vec<Box<dyn FnOnce(&Self)>>>,
 	#[cfg(feature = "async")]
 	runtime: AsyncRuntime,
 }
@@ -118,6 +121,14 @@ impl Lua {
 		&self.runtime
 	}
 
+	pub fn on_tick<F: FnMut(&Self) + 'static>(&self, tick: F) {
+		self.on_tick.borrow_mut().push(Box::new(tick));
+	}
+
+	pub fn on_exit<F: FnOnce(&Self) + 'static>(&self, exit: F) {
+		self.on_exit.borrow_mut().push(Box::new(exit));
+	}
+
 	/// Checks if two values are equal according to Lua semantics.
 	pub fn equals<T: ToLua, U: ToLua>(&self, a: T, b: U) -> Result<bool, Value> {
 		static EQUALS: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
@@ -161,24 +172,32 @@ impl Lua {
 	}
 
 	#[doc(hidden)]
+	#[rustfmt::skip]
 	pub fn __fg_entry(&self) {
-		#[cfg(feature = "async")]
 		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
 			if let Value::Function(timer_create) = timer.raw_get("Create") {
 				static TICK: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-					Lua::enter(state, |lua| lua.runtime.tick());
+					Lua::enter(state, |lua| for tick in lua.on_tick.borrow_mut().iter_mut() {
+						tick(lua);
+					});
 					0
 				});
 
-				let id = format!("__fg_poll_{:p}", self);
+				let id = format!("__fg_tick_{:p}", self);
 				let _ = call!(timer_create, id, 0.0, 0.0, TICK);
 			}
 		}
+
+		#[cfg(feature = "async")]
+		self.on_tick(|lua| lua.async_runtime().tick());
+		#[cfg(feature = "async")]
+		self.on_exit(|lua| lua.async_runtime().shutdown());
 	}
 
 	#[doc(hidden)]
 	pub fn __fg_exit(&self) {
-		#[cfg(feature = "async")]
-		self.runtime.shutdown();
+		for exit in self.on_exit.borrow_mut().drain(..) {
+			exit(self);
+		}
 	}
 }
