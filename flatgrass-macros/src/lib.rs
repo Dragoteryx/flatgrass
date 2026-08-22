@@ -58,6 +58,6 @@ pub fn exit(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let _ = syn::parse_macro_input!(attr as syn::parse::Nothing);
-	let item_fn = syn::parse_macro_input!(item as parse::LuaFn);
-	func::generate_func(item_fn).into()
+	let lua_fn = syn::parse_macro_input!(item as parse::LuaFn);
+	func::generate_func(lua_fn).into()
 }
