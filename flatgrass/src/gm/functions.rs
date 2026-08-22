@@ -6,7 +6,7 @@ pub fn print(msg: &str) {
 		let print = globals.raw_get("print");
 		if let Value::Function(print) = print {
 			for line in msg.lines() {
-				if call!(print: line).is_err() {
+				if call!(print, line).is_err() {
 					break;
 				}
 			}

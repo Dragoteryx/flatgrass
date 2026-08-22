@@ -15,10 +15,10 @@ macro_rules! cfunction {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! call {
-	($func:ident) => {
+	($func:expr $(,)?) => {
 		$crate::lua::Function::call(&$func, [] as [$crate::lua::Value; 0])
 	};
-	($func:ident: $($arg:expr),+ $(,)?) => {
+	($func:expr, $($arg:expr),+ $(,)?) => {
 		$crate::lua::Function::call(&$func, [$($crate::lua::ToLua::to_lua($arg)),+])
 	};
 }
@@ -26,10 +26,10 @@ macro_rules! call {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! resume {
-	($cor:ident) => {
+	($cor:expr $(,)?) => {
 		$crate::lua::Coroutine::resume(&$cor, [] as [$crate::lua::Value; 0])
 	};
-	($cor:ident: $($arg:expr),+ $(,)?) => {
+	($cor:expr, $($arg:expr),+ $(,)?) => {
 		$crate::lua::Coroutine::resume(&$cor, [$($crate::lua::ToLua::to_lua($arg)),+])
 	};
 }

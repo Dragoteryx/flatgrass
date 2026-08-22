@@ -35,7 +35,7 @@ pub fn sleep(duration: Duration) -> Sleep {
 				if let Value::Function(timer_simple) = timer.raw_get("Simple") {
 					let ptr = lua.async_runtime().timers.insert(sender);
 					let func = Function::closure(WAKE_TIMER, [ptr]);
-					let _ = call!(timer_simple: duration.as_secs_f64(), func);
+					let _ = call!(timer_simple, duration.as_secs_f64(), func);
 				}
 			}
 		}

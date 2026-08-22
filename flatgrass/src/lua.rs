@@ -171,7 +171,7 @@ impl Lua {
 				});
 
 				let id = format!("__fg_poll_{:p}", self);
-				let _ = call!(timer_create: id, 0.0, 0.0, TICK);
+				let _ = call!(timer_create, id, 0.0, 0.0, TICK);
 			}
 		}
 	}

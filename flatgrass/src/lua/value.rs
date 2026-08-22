@@ -180,16 +180,6 @@ impl Stack<'_> {
 	}
 }
 
-impl Clone for Reference {
-	fn clone(&self) -> Self {
-		Lua::get(|lua| unsafe {
-			let stack = lua.stack();
-			stack.push_reference(self);
-			stack.pop_reference_unchecked()
-		})
-	}
-}
-
 impl Drop for Reference {
 	fn drop(&mut self) {
 		Lua::try_get(|lua| unsafe {
