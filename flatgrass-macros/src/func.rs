@@ -1,204 +1,149 @@
-use proc_macro2::*;
+use crate::parse::{EntryFn, ExitFn, LuaFn};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
-use syn::*;
 
-pub fn generate_entry(func: &ItemFn) -> TokenStream {
-	let ident = format_ident!("{}", func.sig.ident.to_string());
-	let tokens = generate_func(func);
-	let mut errors = Vec::new();
+pub fn generate_entry(EntryFn(lua_fn): EntryFn) -> TokenStream {
+	let ident = format_ident!("{}", lua_fn.0.sig.ident.to_string());
+	let tokens = generate_func(lua_fn);
 
-	for param in &func.sig.generics.params {
-		if let GenericParam::Type(param) = param {
-			let err = Error::new(
-				param.span(),
-				"the entry function cannot have type parameters",
-			);
-			errors.push(err.to_compile_error());
-		} else if let GenericParam::Const(param) = param {
-			let err = Error::new(
-				param.span(),
-				"the entry function cannot have const parameters",
-			);
-			errors.push(err.to_compile_error());
-		}
-	}
-
-	let body = match errors.is_empty() {
-		false => quote! { 0 },
-		true => quote! {
-			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
-				let __fg_func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
-				__fg_lua.__fg_entry();
-				match ::flatgrass::lua::call!(__fg_func) {
-					Ok(_) => false,
-					Err(__fg_err) => {
-						__fg_lua.stack().clear();
-						__fg_lua.stack().push_any(__fg_err);
-						true
-					},
-				}
-			}) {
-				::flatgrass::ffi::lua_error(__fg_state)
-			} else {
-				0
-			}
-		},
-	};
+	let mixed_span = Span::mixed_site();
+	let state = Ident::new("state", mixed_span);
+	let lua = Ident::new("lua", mixed_span);
+	let func = Ident::new("func", mixed_span);
+	let res = Ident::new("res", mixed_span);
+	let err = Ident::new("err", mixed_span);
+	let ok = Ident::new("ok", mixed_span);
 
 	quote! {
 		#tokens
 
-		#(#errors)*
-
 		#[doc(hidden)]
 		#[unsafe(no_mangle)]
-		pub unsafe extern "C-unwind" fn gmod13_open(__fg_state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+		pub unsafe extern "C-unwind" fn gmod13_open(#state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
 			use crate::{gmod13_open, gmod13_close};
-			#body
-		}
-	}
-}
 
-pub fn generate_exit(func: &ItemFn) -> TokenStream {
-	let ident = format_ident!("{}", func.sig.ident.to_string());
-	let tokens = generate_func(func);
-	let mut errors = Vec::new();
-
-	for param in &func.sig.generics.params {
-		if let GenericParam::Type(param) = param {
-			let err = Error::new(
-				param.span(),
-				"the exit function cannot have type parameters",
-			);
-			errors.push(err.to_compile_error());
-		} else if let GenericParam::Const(param) = param {
-			let err = Error::new(
-				param.span(),
-				"the exit function cannot have const parameters",
-			);
-			errors.push(err.to_compile_error());
-		}
-	}
-
-	let body = match errors.is_empty() {
-		false => quote! { 0 },
-		true => quote! {
-			if ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
-				let __fg_func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
-				let __fg_res = ::flatgrass::lua::call!(__fg_func);
-				__fg_lua.__fg_exit();
-				match __fg_res {
-					Ok(_) => false,
-					Err(__fg_err) => {
-						__fg_lua.stack().clear();
-						__fg_lua.stack().push_any(__fg_err);
-						true
+			let #ok = ::flatgrass::lua::Lua::enter(#state, |#lua| {
+				let #func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
+				#lua.__fg_entry();
+				let #res = ::flatgrass::lua::call!(#func);
+				match #res {
+					Ok(_) => true,
+					Err(#err) => {
+						#lua.stack().clear();
+						#lua.stack().push_any(#err);
+						false
 					},
-				}
-			}) {
-				::flatgrass::ffi::lua_error(__fg_state)
-			} else {
-				0
-			}
-		},
-	};
-
-	quote! {
-		#tokens
-
-		#(#errors)*
-
-		#[doc(hidden)]
-		#[unsafe(no_mangle)]
-		pub unsafe extern "C-unwind" fn gmod13_close(__fg_state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
-			use crate::{gmod13_open, gmod13_close};
-			#body
-		}
-	}
-}
-
-pub fn generate_func(func: &ItemFn) -> TokenStream {
-	let (impl_generics, type_generics, where_clause) = func.sig.generics.split_for_impl();
-	let generics_turbofish = type_generics.as_turbofish();
-	let ident = format_ident!("{}", func.sig.ident.to_string());
-	let vis = &func.vis;
-	let mut errors = Vec::new();
-
-	if let Some(unsafety) = &func.sig.unsafety {
-		let err = Error::new(unsafety.span(), "Lua functions cannot be unsafe");
-		errors.push(err.to_compile_error());
-	}
-
-	if let Some(asyncness) = &func.sig.asyncness {
-		if cfg!(not(feature = "async")) {
-			let err = Error::new(
-				asyncness.span(),
-				"async Lua functions require the `async` feature",
-			);
-			errors.push(err.to_compile_error());
-		}
-	}
-
-	let body = match errors.is_empty() {
-		false => quote! { 0 },
-		true => {
-			let args = func.sig.inputs.iter().map(|_| {
-				quote! {
-					match ::flatgrass::lua::FnParam::fn_param(__fg_lua, &mut __fg_arg, &mut __fg_upv) {
-						::core::result::Result::Ok(__fg_value) => __fg_value,
-						::core::result::Result::Err(__fg_err) => {
-							__fg_lua.stack().clear();
-							__fg_lua.stack().push_any(__fg_err);
-							return ::core::option::Option::None;
-						}
-					}
 				}
 			});
 
-			let call = match &func.sig.asyncness {
-				Some(_) => quote! {
-					__fg_lua.async_runtime().spawn(#ident #generics_turbofish (#(#args),*)).detach();
-					::core::option::Option::Some(::flatgrass::lua::util::Return::Values(0))
-				},
-				None => quote! {
-					match ::flatgrass::lua::FnReturn::fn_return(#ident #generics_turbofish (#(#args),*), __fg_lua) {
-						::core::result::Result::Ok(::flatgrass::lua::util::Return::Values(values)) =>
-							::core::option::Option::Some(::flatgrass::lua::util::Return::Values(__fg_lua.stack().push_many(values))),
-						::core::result::Result::Ok(::flatgrass::lua::util::Return::Yield(values)) =>
-							::core::option::Option::Some(::flatgrass::lua::util::Return::Yield(__fg_lua.stack().push_many(values))),
-						::core::result::Result::Err(__fg_err) => {
-							__fg_lua.stack().clear();
-							__fg_lua.stack().push_any(__fg_err);
-							::core::option::Option::None
-						}
-					}
-				},
-			};
+			if !#ok {
+				::flatgrass::ffi::lua_error(#state)
+			} else {
+				0
+			}
+		}
+	}
+}
 
-			quote! {
-				match ::flatgrass::lua::Lua::enter(__fg_state, |__fg_lua| {
-					let (mut __fg_arg, mut __fg_upv) = (1, 1);
-					#call
-				}) {
-					::core::option::Option::None => ::flatgrass::ffi::lua_error(__fg_state),
-					::core::option::Option::Some(__fg_ret) => match __fg_ret {
-						::flatgrass::lua::util::Return::Values(__fg_n) => __fg_n,
-						::flatgrass::lua::util::Return::Yield(__fg_n) => {
-							::flatgrass::ffi::lua_yield(__fg_state, __fg_n)
-						}
-					}
+pub fn generate_exit(ExitFn(lua_fn): ExitFn) -> TokenStream {
+	let ident = format_ident!("{}", lua_fn.0.sig.ident.to_string());
+	let tokens = generate_func(lua_fn);
+
+	let mixed_span = Span::mixed_site();
+	let state = Ident::new("state", mixed_span);
+	let lua = Ident::new("lua", mixed_span);
+	let func = Ident::new("func", mixed_span);
+	let res = Ident::new("ret", mixed_span);
+	let err = Ident::new("err", mixed_span);
+	let ok = Ident::new("ok", mixed_span);
+
+	quote! {
+		#tokens
+
+		#[doc(hidden)]
+		#[unsafe(no_mangle)]
+		pub unsafe extern "C-unwind" fn gmod13_close(#state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int {
+			use crate::{gmod13_open, gmod13_close};
+
+			let #ok = ::flatgrass::lua::Lua::enter(#state, |#lua| {
+				let #func = ::flatgrass::lua::Function::new(::flatgrass::cfunction!(#ident));
+				let #res = ::flatgrass::lua::call!(#func);
+				#lua.__fg_exit();
+				match #res {
+					Ok(_) => true,
+					Err(#err) => {
+						#lua.stack().clear();
+						#lua.stack().push_any(#err);
+						false
+					},
+				}
+			});
+
+			if !#ok {
+				::flatgrass::ffi::lua_error(#state)
+			} else {
+				0
+			}
+		}
+	}
+}
+
+pub fn generate_func(LuaFn(item_fn): LuaFn) -> TokenStream {
+	let (impl_generics, type_generics, where_clause) = item_fn.sig.generics.split_for_impl();
+	let generics_turbofish = type_generics.as_turbofish();
+	let (ident, vis) = (&item_fn.sig.ident, &item_fn.vis);
+	let ident = format_ident!("{}", ident.to_string());
+
+	let mixed_span = Span::mixed_site();
+	let state = Ident::new("state", mixed_span);
+	let lua = Ident::new("lua", mixed_span);
+	let func = Ident::new("func", mixed_span);
+	let arg = Ident::new("arg", mixed_span);
+	let upv = Ident::new("upv", mixed_span);
+	let val = Ident::new("val", mixed_span);
+	let err = Ident::new("err", mixed_span);
+	let res = Ident::new("res", mixed_span);
+	let ret = Ident::new("ret", mixed_span);
+	let n = Ident::new("n", mixed_span);
+
+	let args = item_fn.sig.inputs.iter().map(|_| {
+		quote! {
+			match ::flatgrass::lua::FnParam::fn_param(#lua, &mut #arg, &mut #upv) {
+				::core::result::Result::Ok(#val) => #val,
+				::core::result::Result::Err(#err) => {
+					#lua.stack().clear();
+					#lua.stack().push_any(#err);
+					return ::core::option::Option::None;
 				}
 			}
 		}
+	});
+
+	let handle_res = match &item_fn.sig.asyncness {
+		Some(_) => quote! {
+			#lua.async_runtime().spawn(#res).detach();
+			::core::option::Option::Some(::flatgrass::lua::util::Return::Values(0))
+		},
+		None => quote! {
+			match ::flatgrass::lua::FnReturn::fn_return(#res, #lua) {
+				::core::result::Result::Ok(::flatgrass::lua::util::Return::Values(values)) =>
+					::core::option::Option::Some(::flatgrass::lua::util::Return::Values(#lua.stack().push_many(values))),
+				::core::result::Result::Ok(::flatgrass::lua::util::Return::Yield(values)) =>
+					::core::option::Option::Some(::flatgrass::lua::util::Return::Yield(#lua.stack().push_many(values))),
+				::core::result::Result::Err(#err) => {
+					#lua.stack().clear();
+					#lua.stack().push_any(#err);
+					::core::option::Option::None
+				}
+			}
+		},
 	};
 
 	quote! {
-		#func
-
-		#(#errors)*
+		#item_fn
 
 		#[doc(hidden)]
+		#[allow(non_camel_case_types)]
 		#[doc = "Generated by the `#[flatgrass::function]` attribute macro."]
 		#vis enum #ident {}
 
@@ -208,11 +153,25 @@ pub fn generate_func(func: &ItemFn) -> TokenStream {
 			#[doc(hidden)]
 			#[doc = ::core::concat!("Returns a raw Lua function containing glue code to call the `", ::core::stringify!(#ident), "` function from Lua.")]
 			pub const fn cfunction #impl_generics () -> ::flatgrass::ffi::lua_CFunction #where_clause {
-				pub unsafe extern "C-unwind" fn __fg_func #impl_generics (__fg_state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
-					#body
+				pub unsafe extern "C-unwind" fn #func #impl_generics (#state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
+					let #ret = ::flatgrass::lua::Lua::enter(#state, |#lua| {
+						let (mut #arg, mut #upv) = (1, 1);
+						let #res = #ident #generics_turbofish (#(#args),*);
+						#handle_res
+					});
+
+					match #ret {
+						::core::option::Option::None => ::flatgrass::ffi::lua_error(#state),
+						::core::option::Option::Some(#ret) => match #ret {
+							::flatgrass::lua::util::Return::Values(#n) => #n,
+							::flatgrass::lua::util::Return::Yield(#n) => {
+								::flatgrass::ffi::lua_yield(#state, #n)
+							}
+						}
+					}
 				}
 
-				__fg_func #generics_turbofish
+				#func #generics_turbofish
 			}
 		}
 	}

@@ -2,6 +2,8 @@ use proc_macro::TokenStream;
 
 mod func;
 
+mod parse;
+
 /// Marks a function as the entry point of your module.
 ///
 /// This function is called when your module is first required from Lua.\
@@ -17,10 +19,10 @@ mod func;
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
-	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
-	let func = syn::parse_macro_input!(input as syn::ItemFn);
-	func::generate_entry(&func).into()
+pub fn entry(attr: TokenStream, item: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(attr as syn::parse::Nothing);
+	let entry_fn = syn::parse_macro_input!(item as parse::EntryFn);
+	func::generate_entry(entry_fn).into()
 }
 
 /// Marks a function as the exit point of your module.
@@ -37,10 +39,10 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn exit(args: TokenStream, input: TokenStream) -> TokenStream {
-	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
-	let func = syn::parse_macro_input!(input as syn::ItemFn);
-	func::generate_exit(&func).into()
+pub fn exit(attr: TokenStream, item: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(attr as syn::parse::Nothing);
+	let exit_fn = syn::parse_macro_input!(item as parse::ExitFn);
+	func::generate_exit(exit_fn).into()
 }
 
 /// Generates the necessary glue code to call a function from Lua.
@@ -54,8 +56,8 @@ pub fn exit(args: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
-	let _ = syn::parse_macro_input!(args as syn::parse::Nothing);
-	let func = syn::parse_macro_input!(input as syn::ItemFn);
-	func::generate_func(&func).into()
+pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
+	let _ = syn::parse_macro_input!(attr as syn::parse::Nothing);
+	let item_fn = syn::parse_macro_input!(item as parse::LuaFn);
+	func::generate_func(item_fn).into()
 }
