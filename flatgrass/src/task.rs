@@ -22,16 +22,15 @@ where
 }
 
 #[derive(Debug)]
-pub struct AsyncRuntime {
+pub struct Runtime {
 	executor: Executor<'static>,
 	shutdown: Cell<bool>,
 	timers: TaskMap<()>,
-
 	#[cfg(feature = "tokio")]
 	tokio: TokioRuntime,
 }
 
-impl AsyncRuntime {
+impl Runtime {
 	pub(crate) fn new() -> Self {
 		Self {
 			executor: Executor::new(),
@@ -56,6 +55,11 @@ impl AsyncRuntime {
 		}
 	}
 
+	#[cfg(feature = "tokio")]
+	pub fn tokio_handle(&self) -> &Handle {
+		self.tokio.handle()
+	}
+
 	pub fn spawn<F: IntoFuture + 'static>(&self, future: F) -> Task<F::Output> {
 		if self.shutdown.get() {
 			panic!("Cannot spawn tasks on a shutdown runtime");
@@ -71,11 +75,6 @@ impl AsyncRuntime {
 	{
 		let future = blocking(func);
 		self.spawn(future).detach()
-	}
-
-	#[cfg(feature = "tokio")]
-	pub fn tokio_handle(&self) -> &Handle {
-		self.tokio.handle()
 	}
 }
 
@@ -138,14 +137,14 @@ struct TaskMap<T> {
 }
 
 impl<T> TaskMap<T> {
-	pub fn insert(&self, sender: Sender<T>) -> LightUserdata {
+	fn insert(&self, sender: Sender<T>) -> LightUserdata {
 		let mut sender = Box::new(sender);
 		let ptr = (&raw mut *sender).cast();
 		self.tasks.borrow_mut().insert(ptr, sender);
 		ptr
 	}
 
-	pub fn wake(&self, ptr: LightUserdata, data: T) {
+	fn wake(&self, ptr: LightUserdata, data: T) {
 		if let Some(sender) = self.tasks.borrow_mut().remove(&ptr) {
 			let _ = sender.send(data);
 		}

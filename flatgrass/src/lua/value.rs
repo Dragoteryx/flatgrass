@@ -183,9 +183,7 @@ impl Stack<'_> {
 impl Drop for Reference {
 	fn drop(&mut self) {
 		Lua::try_get(|lua| unsafe {
-			if let Some(lua) = lua {
-				ffi::luaL_unref(lua.to_ptr(), ffi::LUA_REGISTRYINDEX, self.id);
-			}
+			ffi::luaL_unref(lua.to_ptr(), ffi::LUA_REGISTRYINDEX, self.id);
 		});
 	}
 }

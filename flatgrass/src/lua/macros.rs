@@ -1,17 +1,3 @@
-/// Returns a raw Lua function containing glue code to call the given Rust function from Lua.
-///
-/// This can only be used on functions annotated with `#[flatgrass::function]`.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! cfunction {
-	($func:ident) => {
-		$func::cfunction()
-	};
-	($func:ident :: <$($ty:ty),* $(,)?>) => {
-		$func::cfunction::<$($ty),*>()
-	};
-}
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! call {
@@ -87,4 +73,46 @@ macro_rules! table {
 		$( table.raw_set($key, $value); )*
 		table
 	}};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! lua_function {
+	(|_| $body:expr) => {
+		$crate::lua::lua_function(|lua| $body)
+	};
+	(|$lua:ident| $body:expr) => {
+		$crate::ffi::raw_function!(|state| {
+			let func = |$lua: &$crate::lua::Lua| {
+				let res = $body;
+				match $crate::lua::FnReturn::fn_return(res, $lua) {
+					::core::result::Result::Ok($crate::lua::util::Return::Values(val)) => {
+						::core::option::Option::Some($crate::lua::util::Return::Values(
+							$lua.stack().push_many(val),
+						))
+					}
+					::core::result::Result::Ok($crate::lua::util::Return::Yield(val)) => {
+						::core::option::Option::Some($crate::lua::util::Return::Yield(
+							$lua.stack().push_many(val),
+						))
+					}
+					::core::result::Result::Err(err) => {
+						$lua.stack().clear();
+						$lua.stack().push_any(err);
+						::core::option::Option::None
+					}
+				}
+			};
+
+			unsafe {
+				match Lua::enter(state, func) {
+					::core::option::Option::None => $crate::ffi::lua_error(state),
+					::core::option::Option::Some(ret) => match ret {
+						$crate::lua::util::Return::Yield(n) => $crate::ffi::lua_yield(state, n),
+						$crate::lua::util::Return::Values(n) => n,
+					},
+				}
+			}
+		})
+	};
 }

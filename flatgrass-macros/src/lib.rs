@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use quote::quote;
 
 mod func;
 
@@ -60,4 +61,29 @@ pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let _ = syn::parse_macro_input!(attr as syn::parse::Nothing);
 	let lua_fn = syn::parse_macro_input!(item as parse::LuaFn);
 	func::generate_func(lua_fn).into()
+}
+
+/// Returns a raw Lua function containing glue code to call the given Rust function from Lua.
+///
+/// This can only be used on functions previously annotated with the `#[function]` attribute.
+///
+/// # Examples
+///
+/// ```
+/// #[flatgrass::entry]
+/// pub fn entry() {
+///   let globals = Table::globals();
+///   globals.raw_set("add", cfunction!(add));
+/// }
+///
+/// #[flatgrass::function]
+/// pub fn add(a: f32, b: f32) -> f32 {
+///   a + b
+/// }
+/// ```
+#[proc_macro]
+pub fn cfunction(input: TokenStream) -> TokenStream {
+	let lua_fn = syn::parse_macro_input!(input as parse::LuaFnDecl);
+	let (ident, turbofish) = (lua_fn.ident, lua_fn.turbofish);
+	quote! { #ident::cfunction #turbofish () }.into()
 }

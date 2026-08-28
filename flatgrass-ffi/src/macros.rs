@@ -13,15 +13,11 @@
 /// ```
 #[macro_export]
 macro_rules! raw_function {
+	(|_| $body:expr) => {
+		$crate::raw_function!(|state| $body)
+	};
 	(|$state:ident| $body:expr) => {{
 		unsafe extern "C-unwind" fn func($state: *mut $crate::lua_State) -> $crate::libc::c_int {
-			$body
-		}
-
-		func as $crate::lua_CFunction
-	}};
-	(|_| $body:expr) => {{
-		unsafe extern "C-unwind" fn func(_: *mut $crate::lua_State) -> $crate::libc::c_int {
 			$body
 		}
 

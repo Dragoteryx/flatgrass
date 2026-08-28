@@ -1,3 +1,4 @@
+use syn::AngleBracketedGenericArguments;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 
@@ -12,6 +13,12 @@ pub struct EntryFn(pub LuaFn);
 #[repr(transparent)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExitFn(pub LuaFn);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LuaFnDecl {
+	pub turbofish: Option<syn::AngleBracketedGenericArguments>,
+	pub ident: syn::Ident,
+}
 
 impl Parse for LuaFn {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -35,7 +42,7 @@ impl Parse for LuaFn {
 			);
 		}
 
-		if let Some(unsafety) = &item_fn.sig.unsafety {
+		if let syn::Safety::Unsafe(unsafety) = &item_fn.sig.safety {
 			combine_err(unsafety.span(), "Lua functions cannot be unsafe");
 		}
 
@@ -125,5 +132,18 @@ impl Parse for ExitFn {
 			None => Ok(ExitFn(lua_fn)),
 			Some(err) => Err(err),
 		}
+	}
+}
+
+impl Parse for LuaFnDecl {
+	fn parse(input: ParseStream) -> syn::Result<Self> {
+		let ident = input.parse()?;
+		let turbofish = if input.peek(syn::Token![::]) {
+			Some(AngleBracketedGenericArguments::parse_turbofish(input)?)
+		} else {
+			None
+		};
+
+		Ok(LuaFnDecl { turbofish, ident })
 	}
 }

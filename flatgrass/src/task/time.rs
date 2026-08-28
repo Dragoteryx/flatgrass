@@ -1,5 +1,5 @@
 use crate::ffi;
-use crate::lua::{Function, Lua, Table, Value, call};
+use crate::lua::{Function, Lua, Table, Value, call, lua_function};
 use futures_channel::oneshot::{Receiver, channel};
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -19,24 +19,19 @@ pub fn sleep_until(instant: Instant) -> Sleep {
 }
 
 pub fn sleep(duration: Duration) -> Sleep {
-	static WAKE_TIMER: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-		Lua::enter(state, |lua| {
-			let ptr = lua.stack().get_light_userdata(ffi::lua_upvalueindex(1))?;
-			lua.async_runtime().timers.wake(ptr, ());
-			Some(())
-		});
-		0
+	static WAKE_TIMER: ffi::lua_CFunction = lua_function!(|lua| {
+		let ptr = lua.stack().get_light_userdata(ffi::lua_upvalueindex(1));
+		ptr.inspect(|&ptr| lua.async_runtime().timers.wake(ptr, ()));
 	});
 
+	let secs = duration.as_secs_f64();
 	let (sender, receiver) = channel();
 	Lua::try_get(|lua| {
-		if let Some(lua) = lua {
-			if let Value::Table(timer) = Table::globals().raw_get("timer") {
-				if let Value::Function(timer_simple) = timer.raw_get("Simple") {
-					let ptr = lua.async_runtime().timers.insert(sender);
-					let func = Function::closure(WAKE_TIMER, [ptr]);
-					let _ = call!(timer_simple, duration.as_secs_f64(), func);
-				}
+		if let Value::Table(timer) = Table::globals().raw_get("timer") {
+			if let Value::Function(timer_simple) = timer.raw_get("Simple") {
+				let ptr = lua.async_runtime().timers.insert(sender);
+				let func = Function::closure(WAKE_TIMER, [ptr]);
+				let _ = call!(timer_simple, secs, func);
 			}
 		}
 	});

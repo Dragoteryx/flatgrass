@@ -192,6 +192,7 @@ impl Table {
 	}
 
 	pub fn remove<K: ToLua>(&self, key: K) -> Result<Value, Value> {
+		let key = key.to_lua();
 		let value = self.get(&key)?;
 		self.set(key, Value::Nil)?;
 		Ok(value)

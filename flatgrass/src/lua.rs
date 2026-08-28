@@ -1,11 +1,13 @@
 use crate::ffi;
+#[cfg(feature = "async")]
+use crate::task::Runtime;
 use std::cell::{Cell, RefCell};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::abort;
 use std::ptr::null_mut;
 
-#[cfg(feature = "async")]
-use crate::task::AsyncRuntime;
+#[cfg(feature = "macros")]
+pub use flatgrass_macros::cfunction;
 
 /// Panics with a stack overflow message.
 macro_rules! stack_overflow {
@@ -15,7 +17,7 @@ macro_rules! stack_overflow {
 }
 
 #[doc(inline)]
-pub use crate::{call, cfunction, resume, table};
+pub use crate::{call, lua_function, resume, table};
 mod macros;
 
 /// Serialization and deserialization support for Lua values.
@@ -41,7 +43,7 @@ thread_local! {
 		on_tick: RefCell::new(Vec::new()),
 		on_exit: RefCell::new(Vec::new()),
 		#[cfg(feature = "async")]
-		runtime: AsyncRuntime::new(),
+		runtime: Runtime::new(),
 	};
 }
 
@@ -51,7 +53,7 @@ pub struct Lua {
 	on_tick: RefCell<Vec<Box<dyn FnMut(&Self)>>>,
 	on_exit: RefCell<Vec<Box<dyn FnOnce(&Self)>>>,
 	#[cfg(feature = "async")]
-	runtime: AsyncRuntime,
+	runtime: Runtime,
 }
 
 impl Lua {
@@ -85,10 +87,10 @@ impl Lua {
 	}
 
 	/// Tries to get the current Lua state.
-	pub fn try_get<T>(func: impl FnOnce(Option<&Self>) -> T) -> T {
+	pub fn try_get<T>(func: impl FnOnce(&Self) -> T) -> Option<T> {
 		LUA.with(|lua| match lua.ptr.get().is_null() {
-			false => func(Some(lua)),
-			true => func(None),
+			false => Some(func(lua)),
+			true => None,
 		})
 	}
 
@@ -98,12 +100,12 @@ impl Lua {
 	///
 	/// Panics if the Lua state is not valid.
 	pub fn get<T>(func: impl FnOnce(&Self) -> T) -> T {
-		Self::try_get(|lua| func(lua.expect("uninitialized Lua state")))
+		Self::try_get(func).expect("uninitialized Lua state")
 	}
 
 	/// Checks if the Lua state is valid.
 	pub fn is_valid() -> bool {
-		Lua::try_get(|lua| lua.is_some())
+		Lua::try_get(|_| ()).is_some()
 	}
 
 	/// The associated raw Lua state.
@@ -117,7 +119,7 @@ impl Lua {
 	}
 
 	#[cfg(feature = "async")]
-	pub fn async_runtime(&self) -> &AsyncRuntime {
+	pub fn async_runtime(&self) -> &Runtime {
 		&self.runtime
 	}
 
@@ -172,26 +174,24 @@ impl Lua {
 	}
 
 	#[doc(hidden)]
-	#[rustfmt::skip]
 	pub fn __fg_entry(&self) {
+		#[cfg(feature = "async")]
+		self.on_tick(|lua| lua.async_runtime().tick());
+		#[cfg(feature = "async")]
+		self.on_exit(|lua| lua.async_runtime().shutdown());
+
 		if let Value::Table(timer) = value::Table::globals().raw_get("timer") {
 			if let Value::Function(timer_create) = timer.raw_get("Create") {
-				static TICK: ffi::lua_CFunction = ffi::raw_function!(|state| unsafe {
-					Lua::enter(state, |lua| for tick in lua.on_tick.borrow_mut().iter_mut() {
+				static TICK: ffi::lua_CFunction = lua_function!(|lua| {
+					for tick in lua.on_tick.borrow_mut().iter_mut() {
 						tick(lua);
-					});
-					0
+					}
 				});
 
 				let id = format!("__fg_tick_{:p}", self);
 				let _ = call!(timer_create, id, 0.0, 0.0, TICK);
 			}
 		}
-
-		#[cfg(feature = "async")]
-		self.on_tick(|lua| lua.async_runtime().tick());
-		#[cfg(feature = "async")]
-		self.on_exit(|lua| lua.async_runtime().shutdown());
 	}
 
 	#[doc(hidden)]

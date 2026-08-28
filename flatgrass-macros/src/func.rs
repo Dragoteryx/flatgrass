@@ -1,30 +1,18 @@
 use crate::parse::{EntryFn, ExitFn, LuaFn};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::visit_mut::VisitMut;
-
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct SpanVisitor(pub Span);
-impl VisitMut for SpanVisitor {
-	fn visit_span_mut(&mut self, span: &mut Span) {
-		*span = self.0;
-	}
-}
+use rspn::set_span;
 
 pub fn generate_entry(EntryFn(lua_fn): EntryFn) -> TokenStream {
-	let mut span_visitor = SpanVisitor(Span::call_site());
-	let mut ident = lua_fn.0.sig.ident.clone();
-	span_visitor.visit_ident_mut(&mut ident);
+	let ident = set_span(&lua_fn.0.sig.ident, Span::call_site());
 	let tokens = generate_func(lua_fn);
 
-	let mixed_span = Span::mixed_site();
-	let state = Ident::new("state", mixed_span);
-	let lua = Ident::new("lua", mixed_span);
-	let func = Ident::new("func", mixed_span);
-	let res = Ident::new("res", mixed_span);
-	let err = Ident::new("err", mixed_span);
-	let ok = Ident::new("ok", mixed_span);
+	let state = Ident::new("state", Span::mixed_site());
+	let lua = Ident::new("lua", Span::mixed_site());
+	let func = Ident::new("func", Span::mixed_site());
+	let res = Ident::new("res", Span::mixed_site());
+	let err = Ident::new("err", Span::mixed_site());
+	let ok = Ident::new("ok", Span::mixed_site());
 
 	quote! {
 		#tokens
@@ -59,18 +47,15 @@ pub fn generate_entry(EntryFn(lua_fn): EntryFn) -> TokenStream {
 }
 
 pub fn generate_exit(ExitFn(lua_fn): ExitFn) -> TokenStream {
-	let mut span_visitor = SpanVisitor(Span::call_site());
-	let mut ident = lua_fn.0.sig.ident.clone();
-	span_visitor.visit_ident_mut(&mut ident);
+	let ident = set_span(&lua_fn.0.sig.ident, Span::call_site());
 	let tokens = generate_func(lua_fn);
 
-	let mixed_span = Span::mixed_site();
-	let state = Ident::new("state", mixed_span);
-	let lua = Ident::new("lua", mixed_span);
-	let func = Ident::new("func", mixed_span);
-	let res = Ident::new("ret", mixed_span);
-	let err = Ident::new("err", mixed_span);
-	let ok = Ident::new("ok", mixed_span);
+	let state = Ident::new("state", Span::mixed_site());
+	let lua = Ident::new("lua", Span::mixed_site());
+	let func = Ident::new("func", Span::mixed_site());
+	let res = Ident::new("res", Span::mixed_site());
+	let err = Ident::new("err", Span::mixed_site());
+	let ok = Ident::new("ok", Span::mixed_site());
 
 	quote! {
 		#tokens
@@ -105,29 +90,22 @@ pub fn generate_exit(ExitFn(lua_fn): ExitFn) -> TokenStream {
 }
 
 pub fn generate_func(LuaFn(item_fn): LuaFn) -> TokenStream {
-	let mut span_visitor = SpanVisitor(Span::call_site());
+	let vis = set_span(&item_fn.vis, Span::call_site());
+	let ident = set_span(&item_fn.sig.ident, Span::call_site());
+	let generics = set_span(&item_fn.sig.generics, Span::call_site());
+	let (impl_gen, type_gen, where_clause) = generics.split_for_impl();
+	let turbofish = type_gen.as_turbofish();
 
-	let mut vis = item_fn.vis.clone();
-	span_visitor.visit_visibility_mut(&mut vis);
-	let mut ident = item_fn.sig.ident.clone();
-	span_visitor.visit_ident_mut(&mut ident);
-
-	let mut generics = item_fn.sig.generics.clone();
-	span_visitor.visit_generics_mut(&mut generics);
-	let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
-	let generics_turbofish = type_generics.as_turbofish();
-
-	let mixed_span = Span::mixed_site();
-	let func = Ident::new("func", mixed_span);
-	let state = Ident::new("state", mixed_span);
-	let lua = Ident::new("lua", mixed_span);
-	let arg = Ident::new("arg", mixed_span);
-	let upv = Ident::new("upv", mixed_span);
-	let val = Ident::new("val", mixed_span);
-	let err = Ident::new("err", mixed_span);
-	let res = Ident::new("res", mixed_span);
-	let ret = Ident::new("ret", mixed_span);
-	let n = Ident::new("n", mixed_span);
+	let func = Ident::new("func", Span::mixed_site());
+	let state = Ident::new("state", Span::mixed_site());
+	let lua = Ident::new("lua", Span::mixed_site());
+	let arg = Ident::new("arg", Span::mixed_site());
+	let upv = Ident::new("upv", Span::mixed_site());
+	let val = Ident::new("val", Span::mixed_site());
+	let err = Ident::new("err", Span::mixed_site());
+	let res = Ident::new("res", Span::mixed_site());
+	let ret = Ident::new("ret", Span::mixed_site());
+	let n = Ident::new("n", Span::mixed_site());
 
 	#[rustfmt::skip]
 	let args = item_fn.sig.inputs.iter().map(|_| quote! {
@@ -172,11 +150,11 @@ pub fn generate_func(LuaFn(item_fn): LuaFn) -> TokenStream {
 
 			#[doc(hidden)]
 			#[doc = ::core::concat!("Returns a raw Lua function containing glue code to call the `", ::core::stringify!(#ident), "` function from Lua.")]
-			pub const fn cfunction #impl_generics () -> ::flatgrass::ffi::lua_CFunction #where_clause {
-				unsafe extern "C-unwind" fn #func #impl_generics (#state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
+			pub const fn cfunction #impl_gen () -> ::flatgrass::ffi::lua_CFunction #where_clause {
+				unsafe extern "C-unwind" fn #func #impl_gen (#state: *mut ::flatgrass::ffi::lua_State) -> ::flatgrass::ffi::libc::c_int #where_clause {
 					let #ret = ::flatgrass::lua::Lua::enter(#state, |#lua| {
 						let (mut #arg, mut #upv) = (1, 1);
-						let #res = #ident #generics_turbofish (#(#args),*);
+						let #res = #ident #turbofish (#(#args),*);
 						#handle_res
 					});
 
@@ -191,7 +169,7 @@ pub fn generate_func(LuaFn(item_fn): LuaFn) -> TokenStream {
 					}
 				}
 
-				#func #generics_turbofish
+				#func #turbofish
 			}
 		}
 	}

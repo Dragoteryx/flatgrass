@@ -15,5 +15,8 @@ proc-macro2 = "1"
 quote = "1"
 
 [dependencies.syn]
-features = ["full", "extra-traits", "visit-mut"]
-version = "2"
+features = ["full", "extra-traits"]
+version = "3"
+
+[dependencies.rspn]
+git = "https://github.com/Dragoteryx/rspn.git"
