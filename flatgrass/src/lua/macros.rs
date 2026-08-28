@@ -52,15 +52,15 @@ macro_rules! resume {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! table {
-	($($value:expr),* $(,)?) => {{
-		let table = $crate::lua::Table::new();
-		$( table.raw_push($value); )*
-		table
-	}};
 	($value:expr; $n:expr) => {{
 		let table = $crate::lua::Table::new();
 		let value = $crate::lua::ToLua::to_lua($value);
 		for _ in 0usize..$n { table.raw_push(&value); }
+		table
+	}};
+	($($value:expr),* $(,)?) => {{
+		let table = $crate::lua::Table::new();
+		$( table.raw_push($value); )*
 		table
 	}};
 	($($key:ident : $value:expr),* $(,)?) => {{
@@ -79,7 +79,7 @@ macro_rules! table {
 #[macro_export]
 macro_rules! lua_function {
 	(|_| $body:expr) => {
-		$crate::lua::lua_function(|lua| $body)
+		$crate::lua::lua_function!(|lua| $body)
 	};
 	(|$lua:ident| $body:expr) => {
 		$crate::ffi::raw_function!(|state| {
