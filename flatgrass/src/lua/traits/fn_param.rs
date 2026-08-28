@@ -63,14 +63,17 @@ impl<T: FromLua<Err: ToString>> FnParam for Tuple<Upvalue<T>> {
 
 	fn fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
 		let mut tuple = Self::new();
-		let idx = lua_upvalueindex(*upv);
-		while let Some(value) = lua.stack().get_value(idx) {
-			let value = T::from_lua(value).map_err(LuaError::new)?;
-			tuple.push_back(Upvalue(value));
-			*upv += 1;
+		loop {
+			let idx = lua_upvalueindex(*upv);
+			match lua.stack().get_value(idx) {
+				None => break Ok(tuple),
+				Some(value) => {
+					let value = T::from_lua(value).map_err(LuaError::new)?;
+					tuple.push_back(Upvalue(value));
+					*upv += 1;
+				}
+			}
 		}
-
-		Ok(tuple)
 	}
 }
 
@@ -79,13 +82,16 @@ impl<T: FromLua<Err: ToString>> FnParam for Upvalue<Tuple<T>> {
 
 	fn fn_param(lua: &Lua, _: &mut i32, upv: &mut i32) -> Result<Self, Self::Err> {
 		let mut tuple = Tuple::new();
-		let idx = lua_upvalueindex(*upv);
-		while let Some(value) = lua.stack().get_value(idx) {
-			let value = T::from_lua(value).map_err(LuaError::new)?;
-			tuple.push_back(value);
-			*upv += 1;
+		loop {
+			let idx = lua_upvalueindex(*upv);
+			match lua.stack().get_value(idx) {
+				None => break Ok(Upvalue(tuple)),
+				Some(value) => {
+					let value = T::from_lua(value).map_err(LuaError::new)?;
+					tuple.push_back(value);
+					*upv += 1;
+				}
+			}
 		}
-
-		Ok(Upvalue(tuple))
 	}
 }
