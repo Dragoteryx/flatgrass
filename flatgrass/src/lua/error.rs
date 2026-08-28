@@ -59,7 +59,7 @@ impl<T> BadArgError<T> {
 	pub fn new(mut arg: i32, source: T) -> Self {
 		Lua::get(|lua| unsafe {
 			let mut dbg = std::mem::zeroed();
-			let name = match ffi::lua_getstack(lua.to_ptr(), 0, &mut dbg) == 0 {
+			let name = match ffi::lua_getstack(lua.to_ptr(), 0, &mut dbg) != 1 {
 				true => None,
 				false => {
 					ffi::lua_getinfo(lua.to_ptr(), c"n".as_ptr(), &mut dbg);
