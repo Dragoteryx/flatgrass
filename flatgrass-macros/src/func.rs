@@ -24,7 +24,7 @@ pub fn generate_entry(EntryFn(lua_fn): EntryFn) -> TokenStream {
 
 			let #ok = ::flatgrass::lua::Lua::enter(#state, |#lua| {
 				#lua.__fg_entry();
-				let #func = ::flatgrass::cfunction!(#ident);
+				let #func = ::flatgrass::lua::cfunction!(#ident);
 				let #func = ::flatgrass::lua::Function::new(#func);
 				let #res = ::flatgrass::lua::call!(#func);
 				match #res {
@@ -66,7 +66,7 @@ pub fn generate_exit(ExitFn(lua_fn): ExitFn) -> TokenStream {
 			use crate::{gmod13_open, gmod13_close};
 
 			let #ok = ::flatgrass::lua::Lua::enter(#state, |#lua| {
-				let #func = ::flatgrass::cfunction!(#ident);
+				let #func = ::flatgrass::lua::cfunction!(#ident);
 				let #func = ::flatgrass::lua::Function::new(#func);
 				let #res = ::flatgrass::lua::call!(#func);
 				#lua.__fg_exit();
